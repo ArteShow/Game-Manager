@@ -1,2 +1,5 @@
 Create User
     curl -X POST http://localhost:8080/reg -H "Content-Type: application/json" -d '{"username":"test","password":"testpassword"}'
+
+Login
+    curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d '{"username":"test","password":"testpassword"}'

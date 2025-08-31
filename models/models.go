@@ -8,6 +8,7 @@ type Ports struct {
 type Login struct {
 	Username  string `json:"username"`
 	Passwword string `json:"password"`
+	UserID    int64  `json:"user_ID"`
 }
 
 type DatabasePaths struct {

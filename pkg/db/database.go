@@ -31,8 +31,8 @@ func CreateDatabase(path string) error {
 	return nil
 }
 
-func GetValueFromTableByID(db *sql.DB, table string, column string, id int) (any, error) {
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id = ?", column, table)
+func GetValueFromTableByID(db *sql.DB, table string, column string, id int64, idOF string) (any, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = ?", column, table, idOF)
 
 	var value any
 	err := db.QueryRow(query, id).Scan(&value)
@@ -65,15 +65,16 @@ func InsertValueInTable(table string, columns []string, values []any, db *sql.DB
 	return err
 }
 
-func joinColumns(cols []string) string {
-	result := ""
-	for i, col := range cols {
-		if i > 0 {
-			result += ", "
-		}
-		result += col
+func GetCurrentJWTKey(db *sql.DB) (string, error) {
+	query := "SELECT jwt_key FROM jwt LIMIT 1"
+
+	var key string
+	err := db.QueryRow(query).Scan(&key)
+	if err != nil {
+		return "", err
 	}
-	return result
+
+	return key, nil
 }
 
 func DeleteValueByID(db *sql.DB, table string, id int) error {

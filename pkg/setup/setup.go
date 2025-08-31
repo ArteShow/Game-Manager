@@ -1,11 +1,22 @@
 package setup
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"log"
 
 	"github.com/ArteShow/Game-Manager/pkg/db"
 	getconfig "github.com/ArteShow/Game-Manager/pkg/getConfig"
 )
+
+func GenerateRandomKey(size int) (string, error) {
+	key := make([]byte, size)
+	_, err := rand.Read(key)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(key), nil
+}
 
 func SetUpUsersDatabase() error {
 	path, err := getconfig.GetUserdatabasePath()
@@ -44,30 +55,41 @@ func SetUpUsersDatabase() error {
 func SetUpJWT() error {
 	path, err := getconfig.GetJWTDatabasePath()
 	if err != nil {
-		log.Fatal(err)
 		return err
 	}
 
 	if err := db.CreateDatabase(path); err != nil {
-		log.Fatal(err)
 		return err
 	}
 
 	db2, err := db.OpenDataBase(path)
 	if err != nil {
-		log.Fatal(err)
 		return err
 	}
 	defer db2.Close()
 
 	query := `
     CREATE TABLE IF NOT EXISTS jwt (
-        id   INTEGER PRIMARY KEY AUTOINCREMENT,
-        jwt  TEXT NOT NULL UNIQUE
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        jwt_key TEXT NOT NULL UNIQUE
     );`
-
 	if _, err := db2.Exec(query); err != nil {
-		log.Fatal(err)
+		return err
+	}
+
+	_, err = db2.Exec("DELETE FROM jwt")
+	if err != nil {
+		return err
+	}
+
+	key, err := GenerateRandomKey(32)
+	if err != nil {
+		return err
+	}
+
+	columns := []string{"jwt_key"}
+	values := []any{key}
+	if err := db.InsertValueInTable("jwt", columns, values, db2); err != nil {
 		return err
 	}
 
