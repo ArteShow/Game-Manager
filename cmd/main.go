@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/ArteShow/Game-Manager/application"
+	"github.com/ArteShow/Game-Manager/internal"
 	"github.com/ArteShow/Game-Manager/pkg/setup"
 )
 
@@ -20,7 +21,18 @@ func main() {
 		err := application.StartApplicationServer()
 		if err != nil {
 			log.Fatal(err)
+			panic(err)
 		}
 	}()
 
+	go func() {
+		log.Println("Loading Internla Server")
+		err := internal.StartInternalServer()
+		if err != nil {
+			log.Fatal(err)
+			panic(err)
+		}
+	}()
+
+	select {}
 }

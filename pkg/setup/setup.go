@@ -41,9 +41,48 @@ func SetUpUsersDatabase() error {
 	return nil
 }
 
+func SetUpJWT() error {
+	path, err := getconfig.GetJWTDatabasePath()
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	if err := db.CreateDatabase(path); err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	db2, err := db.OpenDataBase(path)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	defer db2.Close()
+
+	query := `
+    CREATE TABLE IF NOT EXISTS jwt (
+        id   INTEGER PRIMARY KEY AUTOINCREMENT,
+        jwt  TEXT NOT NULL UNIQUE
+    );`
+
+	if _, err := db2.Exec(query); err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	return nil
+}
+
 func SetUp() error {
 	err := SetUpUsersDatabase()
 	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	err2 := SetUpJWT()
+	if err2 != nil {
 		log.Fatal(err)
 		return err
 	}

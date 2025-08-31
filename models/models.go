@@ -2,6 +2,7 @@ package models
 
 type Ports struct {
 	ApplicationPort int `json:"app_port"`
+	InternalPort    int `json:"internal_port"`
 }
 
 type Login struct {
@@ -11,4 +12,5 @@ type Login struct {
 
 type DatabasePaths struct {
 	UserDatabasePath string `json:"user_database_path"`
+	JWTDatabsePath   string `json:"jwt_database_path"`
 }

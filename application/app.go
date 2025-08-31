@@ -11,7 +11,8 @@ import (
 )
 
 func RegistereNewUser(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Post("http://localhost:8081/internal/reg", "application/json", r.Body)
+	log.Println("Register new user")
+	resp, err := http.Post("http://localhost:8081/internal/register", "application/json", r.Body)
 	if err != nil {
 		http.Error(w, "Error while creating new user", http.StatusInternalServerError)
 		return
@@ -29,6 +30,5 @@ func StartApplicationServer() error {
 	portStr := ":" + strconv.Itoa(port)
 
 	http.HandleFunc("/reg", RegistereNewUser)
-
 	return http.ListenAndServe(portStr, nil)
 }

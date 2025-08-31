@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -43,20 +44,16 @@ func GetValueFromTableByID(db *sql.DB, table string, column string, id int) (any
 }
 
 func InsertValueInTable(table string, columns []string, values []any, db *sql.DB) error {
-	placeholders := ""
-	for i := range values {
-		if i > 0 {
-			placeholders += ", "
-		}
-		placeholders += "?"
+	if len(columns) != len(values) {
+		return fmt.Errorf("columns and values length mismatch")
 	}
 
-	query := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES (%s)",
-		table,
-		joinColumns(columns),
-		placeholders,
-	)
+	colNames := strings.Join(columns, ", ")
+
+	placeholders := strings.Repeat("?, ", len(values))
+	placeholders = strings.TrimSuffix(placeholders, ", ")
+
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, placeholders)
 
 	stmt, err := db.Prepare(query)
 	if err != nil {
