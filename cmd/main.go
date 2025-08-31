@@ -4,9 +4,16 @@ import (
 	"log"
 
 	"github.com/ArteShow/Game-Manager/application"
+	"github.com/ArteShow/Game-Manager/pkg/setup"
 )
 
 func main() {
+
+	err := setup.SetUp()
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
 
 	go func() {
 		log.Println("Loading Application Server")
@@ -15,4 +22,5 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
+
 }
