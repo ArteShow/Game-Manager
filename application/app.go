@@ -164,6 +164,50 @@ func CreataeNewProfile(w http.ResponseWriter, r *http.Request) {
 	w.Write(respBody)
 }
 
+func DeletProfile(w http.ResponseWriter, r *http.Request) {
+	userIDCtx := r.Context().Value(UserIDKey)
+	if userIDCtx == nil {
+		http.Error(w, "userID not found in context", http.StatusUnauthorized)
+		return
+	}
+	userID := userIDCtx.(int64)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var profileData models.ProfileData
+	err = json.Unmarshal(body, &profileData)
+	if err != nil {
+		http.Error(w, "Error unmarshaling body", http.StatusInternalServerError)
+		return
+	}
+
+	profileData.UserID = userID
+	newBody, err := json.Marshal(profileData)
+	if err != nil {
+		http.Error(w, "Error marshaling JSON", http.StatusInternalServerError)
+		return
+	}
+
+	port, err := getconfig.GetInternalPort()
+	if err != nil {
+		http.Error(w, "Internal server port not available", http.StatusInternalServerError)
+		return
+	}
+	url := "http://localhost:" + strconv.Itoa(port) + "/internal/deletProfile"
+
+	resp, err := http.Post(url, "application/json", bytes.NewReader(newBody))
+	if err != nil {
+		http.Error(w, "Error sending request to internal server", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+}
+
 func StartApplicationServer() error {
 	log.Println("Starting Application Server")
 	port, err := getconfig.GetApplicationPort()
@@ -176,6 +220,7 @@ func StartApplicationServer() error {
 	http.HandleFunc("/login", LoginNewUser)
 
 	http.Handle("/createProfile", JWTMiddleware(http.HandlerFunc(CreataeNewProfile)))
+	http.Handle("/deletProfile", JWTMiddleware(http.HandlerFunc(DeletProfile)))
 
 	return http.ListenAndServe(portStr, nil)
 }

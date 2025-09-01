@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/ArteShow/Game-Manager/models"
+	"github.com/ArteShow/Game-Manager/pkg/db"
 	DB "github.com/ArteShow/Game-Manager/pkg/db"
 	getconfig "github.com/ArteShow/Game-Manager/pkg/getConfig"
 	"github.com/ArteShow/Game-Manager/pkg/profiles"
@@ -138,6 +139,51 @@ func CreateProflie(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"profile_id": %d}`, profileID)))
 }
 
+func DeletProfile(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error while reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var profileData models.ProfileData
+	err = json.Unmarshal(body, &profileData)
+	if err != nil {
+		http.Error(w, "Error unmarshaling the body", http.StatusInternalServerError)
+		return
+	}
+
+	path, err := getconfig.GetProfilsDatabasePath()
+	if err != nil {
+		http.Error(w, "error while getting the path for the database", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	db, err := db.OpenDataBase(path)
+	if err != nil {
+		http.Error(w, "Failed to open database", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	ok, err := profiles.DeletProfile(db, profileData.ProfileID, profileData.UserID)
+	if err != nil {
+		http.Error(w, "Failed to delet profile", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	if ok {
+		log.Println("Profile deletes sucsessfuly")
+		w.WriteHeader(http.StatusAccepted)
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("Failed to delet")
+	}
+}
+
 func StartInternalServer() error {
 	log.Println("Starting Internal Server")
 	port, err := getconfig.GetInternalPort()
@@ -150,6 +196,7 @@ func StartInternalServer() error {
 	http.HandleFunc("/internal/login", LoginAUser)
 
 	http.HandleFunc("/internal/createProfile", CreateProflie)
+	http.HandleFunc("/internal/deletProfile", DeletProfile)
 
 	return http.ListenAndServe(portStr, nil)
 }

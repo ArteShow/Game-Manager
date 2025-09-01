@@ -21,4 +21,5 @@ type ProfileData struct {
 	UserID      int64  `json:"userID"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	ProfileID   int64  `json:"profile_id"`
 }

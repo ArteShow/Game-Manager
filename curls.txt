@@ -5,4 +5,7 @@ Login
     curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d '{"username":"ArteShow","password":"arteshow"}'
 
 Create Profile
-    curl -X POST http://localhost:8080/createProfile -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"name":"Test","description":"IDK what to insert"}'
+    curl -X POST http://localhost:8080/createProfile -H "Content-Type: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTY4MjAzMzksInVzZXJJRCI6Mn0.i-s_YjMwAihc5a5biitHCHBJi0xtn5iEKtih4x2L8Ow" -d '{"name":"Test","description":"IDK what to insert"}'
+
+Delet Profile
+    curl -X POST http://localhost:8080/deletProfile -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"profile_id":1}'
