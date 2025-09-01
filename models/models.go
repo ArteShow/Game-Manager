@@ -23,3 +23,9 @@ type ProfileData struct {
 	Description string `json:"description"`
 	ProfileID   int64  `json:"profile_id"`
 }
+
+type Game struct {
+	Name      string `json:"name"`
+	UserID    int64  `json:"userID"`
+	ProfileID int64  `json:"profile_id"`
+}

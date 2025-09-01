@@ -37,3 +37,30 @@ func DeletProfile(db *sql.DB, profileID, userID int64) (bool, error) {
 
 	return true, nil
 }
+
+func InsertGameIntoTable(db *sql.DB, gameName string, profileID, userID int64) (bool, error) {
+	var exists bool
+	err := db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM profiles WHERE profile_id = ? AND user_id = ?)",
+		profileID, userID,
+	).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	if !exists {
+		return false, nil
+	}
+
+	_, err = db.Exec("INSERT INTO games (profile_id, name) VALUES (?, ?)", profileID, gameName)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = db.Exec("UPDATE profiles SET used_count = used_count + 1 WHERE profile_id = ?", profileID)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
