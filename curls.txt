@@ -1,5 +1,8 @@
 Create User
-    curl -X POST http://localhost:8080/reg -H "Content-Type: application/json" -d '{"username":"test","password":"testpassword"}'
+    curl -X POST http://localhost:8080/reg -H "Content-Type: application/json" -d '{"username":"ArteShow","password":"arteshow"}'
 
 Login
-    curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d '{"username":"test","password":"testpassword"}'
+    curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d '{"username":"ArteShow","password":"arteshow"}'
+
+Create Profile
+    curl -X POST http://localhost:8080/createProfile -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"name":"Test","description":"IDK what to insert"}'

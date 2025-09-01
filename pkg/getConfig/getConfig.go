@@ -83,3 +83,22 @@ func GetJWTDatabasePath() (string, error) {
 	log.Println("Configuration loaded successfully")
 	return paths.JWTDatabsePath, nil
 }
+
+func GetProfilsDatabasePath() (string, error) {
+	configFile, err := os.Open("./configs/config.json")
+	if err != nil {
+		log.Println("Error opening config file:", err)
+		return "", err
+	}
+	defer configFile.Close()
+
+	paths := &models.DatabasePaths{}
+	decoder := json.NewDecoder(configFile)
+	err = decoder.Decode(paths)
+	if err != nil {
+		log.Println("Error decoding JSON:", err)
+		return "", err
+	}
+	log.Println("Configuration loaded successfully")
+	return paths.ProfilsDatabasePath, nil
+}

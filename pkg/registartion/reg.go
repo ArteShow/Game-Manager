@@ -89,3 +89,24 @@ func GenerateJWT(userID int64) (string, error) {
 
 	return token.SignedString([]byte(jwtKey))
 }
+
+func GetUserIDByCredentials(username, password string) (int64, error) {
+	path, err := getconfig.GetUserdatabasePath()
+	if err != nil {
+		log.Fatal(err)
+		return 0, err
+	}
+	DB, err := db.OpenDataBase(path)
+	if err != nil {
+		return 0, err
+	}
+
+	var userID int64
+	query := `SELECT user_id FROM users WHERE username = ? AND password = ?`
+	err = DB.QueryRow(query, username, password).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+
+	return userID, nil
+}

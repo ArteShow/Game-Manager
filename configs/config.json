@@ -1,6 +1,8 @@
 {
     "app_port": 8080,
     "internal_port": 8081,
+
     "user_database_path": "database/user.db",
-    "jwt_database_path": "database/jwt.db"
+    "jwt_database_path": "database/jwt.db",
+    "proflis_database_path": "database/profils.db"
 }

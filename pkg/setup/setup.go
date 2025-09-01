@@ -18,6 +18,50 @@ func GenerateRandomKey(size int) (string, error) {
 	return base64.URLEncoding.EncodeToString(key), nil
 }
 
+func SetUpProfilesDatabase() error {
+	dbPath, err := getconfig.GetProfilsDatabasePath()
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	err2 := db.CreateDatabase(dbPath)
+	if err2 != nil {
+		return err2
+	}
+
+	Database, err := db.OpenDataBase(dbPath)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS profiles (
+			profile_id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			name TEXT NOT NULL,
+			description TEXT,
+			used_count INTEGER NOT NULL DEFAULT 0
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS games (
+			game_id INTEGER PRIMARY KEY AUTOINCREMENT,
+			profile_id INTEGER NOT NULL,
+			name TEXT NOT NULL
+		);`,
+	}
+
+	for _, q := range queries {
+		if _, err := Database.Exec(q); err != nil {
+			return err
+		}
+	}
+
+	log.Println("Profiles database set up successfully.")
+	return nil
+}
+
 func SetUpUsersDatabase() error {
 	path, err := getconfig.GetUserdatabasePath()
 	if err != nil {
@@ -107,6 +151,12 @@ func SetUp() error {
 	if err2 != nil {
 		log.Fatal(err)
 		return err
+	}
+
+	err3 := SetUpProfilesDatabase()
+	if err3 != nil {
+		log.Fatal(err3)
+		return err3
 	}
 
 	return nil

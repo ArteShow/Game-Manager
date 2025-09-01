@@ -12,6 +12,13 @@ type Login struct {
 }
 
 type DatabasePaths struct {
-	UserDatabasePath string `json:"user_database_path"`
-	JWTDatabsePath   string `json:"jwt_database_path"`
+	UserDatabasePath    string `json:"user_database_path"`
+	JWTDatabsePath      string `json:"jwt_database_path"`
+	ProfilsDatabasePath string `json:"proflis_database_path"`
+}
+
+type ProfileData struct {
+	UserID      int64  `json:"userID"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }

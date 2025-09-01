@@ -1,21 +1,24 @@
 package application
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/ArteShow/Game-Manager/models"
 	getconfig "github.com/ArteShow/Game-Manager/pkg/getConfig"
 	"github.com/ArteShow/Game-Manager/pkg/registartion"
 	"github.com/golang-jwt/jwt/v4"
 )
 
-type ctxKey string
+type CtxKey string
 
-const userIDKey ctxKey = "userID"
+const UserIDKey CtxKey = "userID"
 
 func JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,19 +59,26 @@ func JWTMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, ok := claims["userID"].(string)
+		userIDFloat, ok := claims["userID"].(float64)
 		if !ok {
 			http.Error(w, "Invalid userID in token", http.StatusUnauthorized)
 			return
 		}
-
-		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		userID := int64(userIDFloat)
+		ctx := context.WithValue(r.Context(), UserIDKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func RegistereNewUser(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Post("http://localhost:8081/internal/register", "application/json", r.Body)
+	port, err := getconfig.GetInternalPort()
+	if err != nil {
+		http.Error(w, "Internal server port not available", http.StatusInternalServerError)
+		return
+	}
+	url := "http://localhost:" + strconv.Itoa(port) + "/internal/register"
+
+	resp, err := http.Post(url, "application/json", r.Body)
 	if err != nil {
 		http.Error(w, "Error while creating new user", http.StatusInternalServerError)
 		return
@@ -80,9 +90,16 @@ func RegistereNewUser(w http.ResponseWriter, r *http.Request) {
 func LoginNewUser(w http.ResponseWriter, r *http.Request) {
 	log.Println("Login of new user")
 
-	resp, err := http.Post("http://localhost:8081/internal/login", "application/json", r.Body)
+	port, err := getconfig.GetInternalPort()
 	if err != nil {
-		http.Error(w, "Error while creating new user", http.StatusInternalServerError)
+		http.Error(w, "Internal server port not available", http.StatusInternalServerError)
+		return
+	}
+	url := "http://localhost:" + strconv.Itoa(port) + "/internal/login"
+
+	resp, err := http.Post(url, "application/json", r.Body)
+	if err != nil {
+		http.Error(w, "Error while logging in user", http.StatusInternalServerError)
 		return
 	}
 
@@ -98,6 +115,55 @@ func LoginNewUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+// Profiles
+func CreataeNewProfile(w http.ResponseWriter, r *http.Request) {
+	userIDCtx := r.Context().Value(UserIDKey)
+	if userIDCtx == nil {
+		http.Error(w, "userID not found in context", http.StatusUnauthorized)
+		return
+	}
+	userID := userIDCtx.(int64)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var profileData models.ProfileData
+	err = json.Unmarshal(body, &profileData)
+	if err != nil {
+		http.Error(w, "Error unmarshaling body", http.StatusInternalServerError)
+		return
+	}
+
+	profileData.UserID = userID
+	newBody, err := json.Marshal(profileData)
+	if err != nil {
+		http.Error(w, "Error marshaling JSON", http.StatusInternalServerError)
+		return
+	}
+
+	port, err := getconfig.GetInternalPort()
+	if err != nil {
+		http.Error(w, "Internal server port not available", http.StatusInternalServerError)
+		return
+	}
+	url := "http://localhost:" + strconv.Itoa(port) + "/internal/createProfile"
+
+	resp, err := http.Post(url, "application/json", bytes.NewReader(newBody))
+	if err != nil {
+		http.Error(w, "Error sending request to internal server", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(respBody)
+}
+
 func StartApplicationServer() error {
 	log.Println("Starting Application Server")
 	port, err := getconfig.GetApplicationPort()
@@ -108,6 +174,8 @@ func StartApplicationServer() error {
 
 	http.HandleFunc("/reg", RegistereNewUser)
 	http.HandleFunc("/login", LoginNewUser)
+
+	http.Handle("/createProfile", JWTMiddleware(http.HandlerFunc(CreataeNewProfile)))
 
 	return http.ListenAndServe(portStr, nil)
 }
