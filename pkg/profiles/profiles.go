@@ -125,3 +125,35 @@ func DeletGame(db *sql.DB, profileID, userID, gameID int64) (bool, error) {
 
 	return true, nil
 }
+
+func GetAllGamesFromAProfile(db *sql.DB, profileID, userID int64) ([]models.Game, error) {
+	var count int
+	err := db.QueryRow(
+		"SELECT COUNT(*) FROM profiles WHERE profile_id = ? AND user_id = ?",
+		profileID, userID,
+	).Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	if count == 0 {
+		return nil, fmt.Errorf("profile does not belong to user")
+	}
+
+	rows, err := db.Query("SELECT game_id, profile_id, name FROM games WHERE profile_id = ?", profileID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var games []models.Game
+	for rows.Next() {
+		var game models.Game
+		if err := rows.Scan(&game.GameID, &game.ProfileID, &game.Name); err != nil {
+			return nil, err
+		}
+		game.UserID = userID
+		games = append(games, game)
+	}
+
+	return games, nil
+}

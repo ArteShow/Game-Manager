@@ -319,6 +319,53 @@ func DeletGame(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetUsersGames(w http.ResponseWriter, r *http.Request) {
+	log.Println("Internal: fetching games for a profile")
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var gameReq models.Game
+	err = json.Unmarshal(body, &gameReq)
+	if err != nil {
+		http.Error(w, "Error unmarshaling request body", http.StatusInternalServerError)
+		return
+	}
+	path, err := getconfig.GetProfilsDatabasePath()
+	if err != nil {
+		http.Error(w, "Failed to get database path", http.StatusInternalServerError)
+		return
+	}
+
+	db, err := db.OpenDataBase(path)
+	if err != nil {
+		http.Error(w, "Failed to open database", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	games, err := profiles.GetAllGamesFromAProfile(db, gameReq.ProfileID, gameReq.UserID)
+	if err != nil {
+		http.Error(w, "Failed to fetch games", http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
+
+	respBytes, err := json.Marshal(games)
+	if err != nil {
+		http.Error(w, "Failed to marshal games to JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respBytes)
+}
+
 func StartInternalServer() error {
 	log.Println("Starting Internal Server")
 	port, err := getconfig.GetInternalPort()
@@ -335,6 +382,7 @@ func StartInternalServer() error {
 	http.HandleFunc("/internal/createGame", CreateGame)
 	http.HandleFunc("/internal/getUsersProfiles", GetAllUsersProflies)
 	http.HandleFunc("/internal/deletGame", DeletGame)
+	http.HandleFunc("/internal/getGames", GetUsersGames)
 
 	return http.ListenAndServe(portStr, nil)
 }

@@ -338,6 +338,63 @@ func DeletGame(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 }
 
+func GetAllUsersGames(w http.ResponseWriter, r *http.Request) {
+	log.Println("Getting all games for a user")
+
+	userIDCtx := r.Context().Value(UserIDKey)
+	if userIDCtx == nil {
+		http.Error(w, "userID not found in context", http.StatusUnauthorized)
+		return
+	}
+	userID := userIDCtx.(int64)
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var gameReq models.Game
+	err = json.Unmarshal(body, &gameReq)
+	if err != nil {
+		http.Error(w, "Error unmarshaling request body", http.StatusInternalServerError)
+		return
+	}
+
+	gameReq.UserID = userID
+
+	newBody, err := json.Marshal(gameReq)
+	if err != nil {
+		http.Error(w, "Error marshaling JSON", http.StatusInternalServerError)
+		return
+	}
+
+	port, err := getconfig.GetInternalPort()
+	if err != nil {
+		http.Error(w, "Internal server port not available", http.StatusInternalServerError)
+		return
+	}
+	url := "http://localhost:" + strconv.Itoa(port) + "/internal/getGames"
+
+	resp, err := http.Post(url, "application/json", bytes.NewReader(newBody))
+	if err != nil {
+		http.Error(w, "Error sending request to internal server", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to read response from internal server", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(respBody)
+}
+
 func StartApplicationServer() error {
 	log.Println("Starting Application Server")
 	port, err := getconfig.GetApplicationPort()
@@ -354,6 +411,7 @@ func StartApplicationServer() error {
 	http.Handle("/createGame", JWTMiddleware(http.HandlerFunc(CreateGame)))
 	http.Handle("/getAllUsersProflies", JWTMiddleware(http.HandlerFunc(GetAllUsersProfiles)))
 	http.Handle("/deletGame", JWTMiddleware(http.HandlerFunc(DeletGame)))
+	http.Handle("/getGames", JWTMiddleware(http.HandlerFunc(GetAllUsersGames)))
 
 	return http.ListenAndServe(portStr, nil)
 }
