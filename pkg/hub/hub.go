@@ -7,48 +7,56 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/ArteShow/Game-Manager/models"
 	getconfig "github.com/ArteShow/Game-Manager/pkg/getConfig"
+	"github.com/ArteShow/Game-Manager/pkg/rooms"
 )
 
-func CreateRoom(hubCache *models.HubCache) http.HandlerFunc {
+type Hub struct {
+	Cache       *models.HubCache
+	RoomServers map[int64]*rooms.RoomServer
+	Mu          *sync.Mutex
+}
+
+func (h *Hub) CreateRoom() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "Failed to read the body", http.StatusInternalServerError)
+			http.Error(w, "Failed to read body", http.StatusInternalServerError)
 			log.Println(err)
 			return
 		}
 		defer r.Body.Close()
 
-		var NewRoom models.Room
-		err = json.Unmarshal(body, &NewRoom)
-		if err != nil {
-			http.Error(w, "Failed to unmarshal the body", http.StatusInternalServerError)
+		var newRoom models.Room
+		if err := json.Unmarshal(body, &newRoom); err != nil {
+			http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
 			log.Println(err)
 			return
 		}
 
-		roomID := int64(1)
-		for {
-			if _, exists := hubCache.Rooms[roomID]; !exists {
-				break
-			}
-			roomID++
-		}
+		h.Mu.Lock()
+		roomID := int64(len(h.Cache.Rooms) + 1)
 
-		hubCache.Start <- models.StartRoomRequest{
-			RoomID:   roomID,
-			RoomName: NewRoom.RoomName,
+		room := &models.Room{
+			RoomName: newRoom.RoomName,
+			Users:    []int64{},
 		}
+		h.Cache.Rooms[roomID] = room
+
+		roomServer := rooms.NewRoomServer(room, roomID, h.Cache)
+		h.RoomServers[roomID] = roomServer
+		roomServer.Start()
+		h.Mu.Unlock()
 
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf(`{"roomID": %d, "roomName": "%s"}`, roomID, NewRoom.RoomName)))
+		w.Write([]byte(fmt.Sprintf(`{"roomID": %d, "roomName": "%s"}`, roomID, newRoom.RoomName)))
 	}
 }
 
-func DeleteRoom(hubCache *models.HubCache) http.HandlerFunc {
+func (h *Hub) DeleteRoom() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -67,25 +75,36 @@ func DeleteRoom(hubCache *models.HubCache) http.HandlerFunc {
 			return
 		}
 
-		if _, exists := hubCache.Rooms[req.RoomID]; exists {
-			delete(hubCache.Rooms, req.RoomID)
+		h.Mu.Lock()
+		if _, exists := h.Cache.Rooms[req.RoomID]; exists {
+			if srv, ok := h.RoomServers[req.RoomID]; ok {
+				srv.Stop()
+				delete(h.RoomServers, req.RoomID)
+			}
+
+			delete(h.Cache.Rooms, req.RoomID)
 			log.Printf("Room %d deleted\n", req.RoomID)
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"message": "Room deleted"}`))
 		} else {
 			http.Error(w, "Room not found", http.StatusNotFound)
 		}
+		h.Mu.Unlock()
 	}
 }
 
 func StartHub() error {
 	log.Println("Starting the Hub")
 
-	hubCache := &models.HubCache{
-		Rooms: make(map[int64]*models.Room),
-		Join:  make(chan models.JoinRequest),
-		Leave: make(chan models.LeaveRequest),
-		Start: make(chan models.StartRoomRequest),
+	hub := &Hub{
+		Cache: &models.HubCache{
+			Rooms: make(map[int64]*models.Room),
+			Join:  make(chan models.JoinRequest),
+			Leave: make(chan models.LeaveRequest),
+			Start: make(chan models.StartRoomRequest),
+		},
+		RoomServers: make(map[int64]*rooms.RoomServer),
+		Mu:          &sync.Mutex{},
 	}
 
 	portInt, err := getconfig.GetHubPort()
@@ -97,8 +116,8 @@ func StartHub() error {
 	go func() {
 		for {
 			select {
-			case joinReq := <-hubCache.Join:
-				room, ok := hubCache.Rooms[joinReq.RoomID]
+			case joinReq := <-hub.Cache.Join:
+				room, ok := hub.Cache.Rooms[joinReq.RoomID]
 				if !ok {
 					log.Printf("Room %d does not exist\n", joinReq.RoomID)
 					continue
@@ -106,8 +125,8 @@ func StartHub() error {
 				room.AddUser(joinReq.UserID)
 				log.Printf("User %d joined room %d\n", joinReq.UserID, joinReq.RoomID)
 
-			case leaveReq := <-hubCache.Leave:
-				room, ok := hubCache.Rooms[leaveReq.RoomID]
+			case leaveReq := <-hub.Cache.Leave:
+				room, ok := hub.Cache.Rooms[leaveReq.RoomID]
 				if !ok {
 					log.Printf("Room %d does not exist\n", leaveReq.RoomID)
 					continue
@@ -115,12 +134,11 @@ func StartHub() error {
 				room.RemoveUser(leaveReq.UserID)
 				log.Printf("User %d left room %d\n", leaveReq.UserID, leaveReq.RoomID)
 
-			case startReq := <-hubCache.Start:
-				if _, exists := hubCache.Rooms[startReq.RoomID]; !exists {
-					hubCache.Rooms[startReq.RoomID] = &models.Room{
+			case startReq := <-hub.Cache.Start:
+				if _, exists := hub.Cache.Rooms[startReq.RoomID]; !exists {
+					hub.Cache.Rooms[startReq.RoomID] = &models.Room{
 						RoomName: startReq.RoomName,
 						Users:    []int64{},
-						Started:  true,
 					}
 					log.Printf("Room %d started: %s\n", startReq.RoomID, startReq.RoomName)
 				}
@@ -128,8 +146,8 @@ func StartHub() error {
 		}
 	}()
 
-	http.HandleFunc("/createRoom", CreateRoom(hubCache))
-	http.HandleFunc("/deleteRoom", DeleteRoom(hubCache))
+	http.HandleFunc("/createRoom", hub.CreateRoom())
+	http.HandleFunc("/deleteRoom", hub.DeleteRoom())
 
 	return http.ListenAndServe(portStr, nil)
 }

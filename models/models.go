@@ -38,7 +38,6 @@ type Game struct {
 type Room struct {
 	Users    []int64
 	RoomName string `json:"room_name"`
-	Started  bool
 	Mu       sync.Mutex
 }
 
