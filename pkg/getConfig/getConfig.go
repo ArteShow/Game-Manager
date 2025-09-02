@@ -97,3 +97,21 @@ func GetProfilsDatabasePath() (string, error) {
 	}
 	return paths.ProfilsDatabasePath, nil
 }
+
+func GetHubPort() (int, error) {
+	configFile, err := os.Open("./configs/config.json")
+	if err != nil {
+		log.Println("Error opening config file:", err)
+		return 0, err
+	}
+	defer configFile.Close()
+
+	ports := &models.Ports{}
+	decoder := json.NewDecoder(configFile)
+	err = decoder.Decode(ports)
+	if err != nil {
+		log.Println("Error decoding JSON:", err)
+		return 0, err
+	}
+	return ports.HubPort, nil
+}

@@ -1,8 +1,11 @@
 package models
 
+import "sync"
+
 type Ports struct {
 	ApplicationPort int `json:"app_port"`
 	InternalPort    int `json:"internal_port"`
+	HubPort         int `json:"hub_port"`
 }
 
 type Login struct {
@@ -33,8 +36,10 @@ type Game struct {
 }
 
 type Room struct {
-	Users    map[int64]bool
-	RoomName string
+	Users    []int64
+	RoomName string `json:"room_name"`
+	Started  bool
+	Mu       sync.Mutex
 }
 
 type HubCache struct {
@@ -57,4 +62,29 @@ type LeaveRequest struct {
 type StartRoomRequest struct {
 	RoomID   int64
 	RoomName string
+}
+
+func (r *Room) AddUser(userID int64) {
+	r.Mu.Lock()
+	defer r.Mu.Unlock()
+	r.Users = append(r.Users, userID)
+}
+
+func (r *Room) RemoveUser(userID int64) {
+	r.Mu.Lock()
+	defer r.Mu.Unlock()
+	for i, id := range r.Users {
+		if id == userID {
+			r.Users = append(r.Users[:i], r.Users[i+1:]...)
+			break
+		}
+	}
+}
+
+func (r *Room) GetUsers() []int64 {
+	r.Mu.Lock()
+	defer r.Mu.Unlock()
+	usersCopy := make([]int64, len(r.Users))
+	copy(usersCopy, r.Users)
+	return usersCopy
 }

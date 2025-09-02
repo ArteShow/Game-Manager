@@ -59,7 +59,6 @@ func SetUpProfilesDatabase() error {
 		}
 	}
 
-	log.Println("Profiles database set up successfully.")
 	return nil
 }
 
