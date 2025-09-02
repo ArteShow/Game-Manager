@@ -252,6 +252,47 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 }
 
+func GetAllUsersProfiles(w http.ResponseWriter, r *http.Request) {
+	userIDCtx := r.Context().Value(UserIDKey)
+	if userIDCtx == nil {
+		http.Error(w, "userID not found in context", http.StatusUnauthorized)
+		return
+	}
+	userID := userIDCtx.(int64)
+
+	var Profiles models.ProfileData
+
+	Profiles.UserID = userID
+	newBody, err := json.Marshal(Profiles)
+	if err != nil {
+		http.Error(w, "Error marshaling JSON", http.StatusInternalServerError)
+		return
+	}
+
+	port, err := getconfig.GetInternalPort()
+	if err != nil {
+		http.Error(w, "Internal server port not available", http.StatusInternalServerError)
+		return
+	}
+	url := "http://localhost:" + strconv.Itoa(port) + "/internal/getUsersProfiles"
+
+	resp, err := http.Post(url, "application/json", bytes.NewReader(newBody))
+	if err != nil {
+		http.Error(w, "Error sending request to internal server", http.StatusInternalServerError)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to read the rsponse from internal server", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
 func StartApplicationServer() error {
 	log.Println("Starting Application Server")
 	port, err := getconfig.GetApplicationPort()
@@ -266,6 +307,7 @@ func StartApplicationServer() error {
 	http.Handle("/createProfile", JWTMiddleware(http.HandlerFunc(CreataeNewProfile)))
 	http.Handle("/deletProfile", JWTMiddleware(http.HandlerFunc(DeletProfile)))
 	http.Handle("/createGame", JWTMiddleware(http.HandlerFunc(CreateGame)))
+	http.Handle("/getAllUsersProflies", JWTMiddleware(http.HandlerFunc(GetAllUsersProfiles)))
 
 	return http.ListenAndServe(portStr, nil)
 }

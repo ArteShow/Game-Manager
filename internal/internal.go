@@ -228,6 +228,53 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetAllUsersProflies(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error while reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var Profile models.ProfileData
+	err = json.Unmarshal(body, &Profile)
+	if err != nil {
+		http.Error(w, "Error unmarshaling the body", http.StatusInternalServerError)
+		return
+	}
+
+	path, err := getconfig.GetProfilsDatabasePath()
+	if err != nil {
+		http.Error(w, "Error while getting the path for the database", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	db, err := DB.OpenDataBase(path)
+	if err != nil {
+		http.Error(w, "Failed to open database", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+	defer db.Close()
+
+	Profiles, err := profiles.GetAllUsersProfiles(db, Profile.UserID)
+	if err != nil {
+		http.Error(w, "Failed to get Profiles", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	err = json.NewEncoder(w).Encode(Profiles)
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
 func StartInternalServer() error {
 	log.Println("Starting Internal Server")
 	port, err := getconfig.GetInternalPort()
@@ -242,6 +289,7 @@ func StartInternalServer() error {
 	http.HandleFunc("/internal/createProfile", CreateProflie)
 	http.HandleFunc("/internal/deletProfile", DeletProfile)
 	http.HandleFunc("/internal/createGame", CreateGame)
+	http.HandleFunc("/internal/getUsersProfiles", GetAllUsersProflies)
 
 	return http.ListenAndServe(portStr, nil)
 }

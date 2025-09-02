@@ -3,6 +3,8 @@ package profiles
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/ArteShow/Game-Manager/models"
 )
 
 func CreateProfileInDB(db *sql.DB, userID int64, name string, description string) (int64, error) {
@@ -63,4 +65,32 @@ func InsertGameIntoTable(db *sql.DB, gameName string, profileID, userID int64) (
 	}
 
 	return true, nil
+}
+
+func GetAllUsersProfiles(db *sql.DB, userID int64) ([]models.ProfileData, error) {
+	rows, err := db.Query(
+		"SELECT profile_id, user_id, name, description, used_count FROM profiles WHERE user_id = ?",
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var profiles []models.ProfileData
+
+	for rows.Next() {
+		var p models.ProfileData
+		err := rows.Scan(&p.ProfileID, &p.UserID, &p.Name, &p.Description, &p.UsedCount)
+		if err != nil {
+			return nil, err
+		}
+		profiles = append(profiles, p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return profiles, nil
 }

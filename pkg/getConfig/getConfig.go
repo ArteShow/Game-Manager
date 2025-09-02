@@ -23,7 +23,6 @@ func GetApplicationPort() (int, error) {
 		log.Println("Error decoding JSON:", err)
 		return 0, err
 	}
-	log.Println("Configuration loaded successfully")
 	return ports.ApplicationPort, nil
 }
 
@@ -42,7 +41,6 @@ func GetUserdatabasePath() (string, error) {
 		log.Println("Error decoding JSON:", err)
 		return "", err
 	}
-	log.Println("Configuration loaded successfully")
 	return paths.UserDatabasePath, nil
 }
 
@@ -61,7 +59,6 @@ func GetInternalPort() (int, error) {
 		log.Println("Error decoding JSON:", err)
 		return 0, err
 	}
-	log.Println("Configuration loaded successfully")
 	return ports.InternalPort, nil
 }
 
@@ -80,7 +77,6 @@ func GetJWTDatabasePath() (string, error) {
 		log.Println("Error decoding JSON:", err)
 		return "", err
 	}
-	log.Println("Configuration loaded successfully")
 	return paths.JWTDatabsePath, nil
 }
 
@@ -99,6 +95,5 @@ func GetProfilsDatabasePath() (string, error) {
 		log.Println("Error decoding JSON:", err)
 		return "", err
 	}
-	log.Println("Configuration loaded successfully")
 	return paths.ProfilsDatabasePath, nil
 }
