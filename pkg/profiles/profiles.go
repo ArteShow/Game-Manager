@@ -94,3 +94,34 @@ func GetAllUsersProfiles(db *sql.DB, userID int64) ([]models.ProfileData, error)
 
 	return profiles, nil
 }
+
+func DeletGame(db *sql.DB, profileID, userID, gameID int64) (bool, error) {
+	var count int
+	err := db.QueryRow(
+		"SELECT COUNT(*) FROM profiles WHERE profile_id = ? AND user_id = ?",
+		profileID, userID,
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+
+	if count == 0 {
+		return false, nil
+	}
+
+	res, err := db.Exec("DELETE FROM games WHERE game_id = ? AND profile_id = ?", gameID, profileID)
+	if err != nil {
+		return false, err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rows == 0 {
+		return false, nil
+	}
+
+	return true, nil
+}

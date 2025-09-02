@@ -275,6 +275,50 @@ func GetAllUsersProflies(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func DeletGame(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error while reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var Game models.Game
+	err = json.Unmarshal(body, &Game)
+	if err != nil {
+		http.Error(w, "Error unmarshaling the body", http.StatusInternalServerError)
+		return
+	}
+
+	path, err := getconfig.GetProfilsDatabasePath()
+	if err != nil {
+		http.Error(w, "error while getting the path for the database", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	db, err := db.OpenDataBase(path)
+	if err != nil {
+		http.Error(w, "Failed to open database", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	ok, err := profiles.DeletGame(db, Game.ProfileID, Game.UserID, Game.GameID)
+	if err != nil {
+		http.Error(w, "Failed to delet the game", http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	if !ok {
+		log.Println("Something went wrong pls try again")
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func StartInternalServer() error {
 	log.Println("Starting Internal Server")
 	port, err := getconfig.GetInternalPort()
@@ -290,6 +334,7 @@ func StartInternalServer() error {
 	http.HandleFunc("/internal/deletProfile", DeletProfile)
 	http.HandleFunc("/internal/createGame", CreateGame)
 	http.HandleFunc("/internal/getUsersProfiles", GetAllUsersProflies)
+	http.HandleFunc("/internal/deletGame", DeletGame)
 
 	return http.ListenAndServe(portStr, nil)
 }

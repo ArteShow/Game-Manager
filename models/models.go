@@ -29,4 +29,5 @@ type Game struct {
 	Name      string `json:"name"`
 	UserID    int64  `json:"userID"`
 	ProfileID int64  `json:"profile_id"`
+	GameID    int64  `json:"game_id"`
 }
