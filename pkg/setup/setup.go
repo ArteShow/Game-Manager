@@ -48,7 +48,8 @@ func SetUpProfilesDatabase() error {
 		`CREATE TABLE IF NOT EXISTS games (
 			game_id INTEGER PRIMARY KEY AUTOINCREMENT,
 			profile_id INTEGER NOT NULL,
-			name TEXT NOT NULL
+			name TEXT NOT NULL,
+			UNIQUE(profile_id, name)
 		);`,
 	}
 

@@ -3,6 +3,7 @@ package profiles
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/ArteShow/Game-Manager/models"
 )
@@ -41,26 +42,23 @@ func DeletProfile(db *sql.DB, profileID, userID int64) (bool, error) {
 }
 
 func InsertGameIntoTable(db *sql.DB, gameName string, profileID, userID int64) (bool, error) {
-	var exists bool
+	var count int
 	err := db.QueryRow(
-		"SELECT EXISTS(SELECT 1 FROM profiles WHERE profile_id = ? AND user_id = ?)",
+		"SELECT COUNT(*) FROM profiles WHERE profile_id = ? AND user_id = ?",
 		profileID, userID,
-	).Scan(&exists)
+	).Scan(&count)
 	if err != nil {
 		return false, err
 	}
-
-	if !exists {
-		return false, nil
+	if count == 0 {
+		return false, fmt.Errorf("profile does not belong to user")
 	}
 
 	_, err = db.Exec("INSERT INTO games (profile_id, name) VALUES (?, ?)", profileID, gameName)
 	if err != nil {
-		return false, err
-	}
-
-	_, err = db.Exec("UPDATE profiles SET used_count = used_count + 1 WHERE profile_id = ?", profileID)
-	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return false, fmt.Errorf("game '%s' already exists for this profile", gameName)
+		}
 		return false, err
 	}
 
@@ -156,4 +154,30 @@ func GetAllGamesFromAProfile(db *sql.DB, profileID, userID int64) ([]models.Game
 	}
 
 	return games, nil
+}
+
+func GetGameByGameIDProfileIDUserID(db *sql.DB, profileID, userID, gameID int64) (models.Game, error) {
+	var count int
+	err := db.QueryRow(
+		"SELECT COUNT(*) FROM profiles WHERE profile_id = ? AND user_id = ?",
+		profileID, userID,
+	).Scan(&count)
+	if err != nil {
+		return models.Game{}, err
+	}
+	if count == 0 {
+		return models.Game{}, fmt.Errorf("profile does not belong to user")
+	}
+
+	var game models.Game
+	err = db.QueryRow(
+		"SELECT game_id, profile_id, name FROM games WHERE game_id = ? AND profile_id = ?",
+		gameID, profileID,
+	).Scan(&game.GameID, &game.ProfileID, &game.Name)
+	if err != nil {
+		return models.Game{}, err
+	}
+
+	game.UserID = userID
+	return game, nil
 }

@@ -31,3 +31,30 @@ type Game struct {
 	ProfileID int64  `json:"profile_id"`
 	GameID    int64  `json:"game_id"`
 }
+
+type Room struct {
+	Users    map[int64]bool
+	RoomName string
+}
+
+type HubCache struct {
+	Rooms map[int64]*Room
+	Join  chan JoinRequest
+	Leave chan LeaveRequest
+	Start chan StartRoomRequest
+}
+
+type JoinRequest struct {
+	UserID int64
+	RoomID int64
+}
+
+type LeaveRequest struct {
+	UserID int64
+	RoomID int64
+}
+
+type StartRoomRequest struct {
+	RoomID   int64
+	RoomName string
+}

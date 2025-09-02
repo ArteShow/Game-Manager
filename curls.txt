@@ -14,10 +14,13 @@ Get All Users Profiles
     curl -X GET http://localhost:8080/getAllUsersProflies -H "Content-Type: application/json" -H "Authorization: Bearer "
 
 Create Game
-    curl -X POST http://localhost:8080/createGame -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"name":"Test","profile_id":3}'
+    curl -X POST http://localhost:8080/createGame -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"name":"Test","profile_id":1}'
 
 DeletGame
     curl -X POST http://localhost:8080/deletGame -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"profile_id": 3, "game_id": 1}'
 
 GetGames
     curl -X POST http://localhost:8080/getGames -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"profile_id": 3}'
+
+Get Game by ID
+    curl -X POST http://localhost:8080/getGameById -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"profile_id": 1, "game_id": 2}'
