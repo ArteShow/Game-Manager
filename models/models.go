@@ -8,6 +8,10 @@ type Ports struct {
 	HubPort         int `json:"hub_port"`
 }
 
+type TasksPath struct {
+	TasksPath string `json:"task_path"`
+}
+
 type Login struct {
 	Username  string `json:"username"`
 	Passwword string `json:"password"`
@@ -42,10 +46,13 @@ type Room struct {
 }
 
 type HubCache struct {
-	Rooms map[int64]*Room
-	Join  chan JoinRequest
-	Leave chan LeaveRequest
-	Start chan StartRoomRequest
+	Rooms        map[int64]*Room
+	Join         chan JoinRequest
+	Leave        chan LeaveRequest
+	Start        chan StartRoomRequest
+	Broadcast    chan RoomUpdate
+	UserProfiles map[int64]ProfileData
+	Mu           sync.Mutex
 }
 
 type JoinRequest struct {
@@ -86,4 +93,26 @@ func (r *Room) GetUsers() []int64 {
 	usersCopy := make([]int64, len(r.Users))
 	copy(usersCopy, r.Users)
 	return usersCopy
+}
+
+type RoomUpdate struct {
+	Action string `json:"action"`
+	RoomID int64  `json:"roomID"`
+	Name   string `json:"roomName"`
+}
+
+type RoomMessage struct {
+	UserID  int64  `json:"userID"`
+	Message string `json:"message"`
+}
+
+func (h *HubCache) GetAllProfiles() []ProfileData {
+	h.Mu.Lock()
+	defer h.Mu.Unlock()
+
+	profiles := make([]ProfileData, 0, len(h.UserProfiles))
+	for _, profile := range h.UserProfiles {
+		profiles = append(profiles, profile)
+	}
+	return profiles
 }

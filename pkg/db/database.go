@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -12,7 +11,6 @@ import (
 func OpenDataBase(path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
-		log.Fatal(err)
 		return db, err
 	}
 	return db, nil

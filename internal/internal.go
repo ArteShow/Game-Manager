@@ -82,7 +82,6 @@ func LoginAUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := registartion.GetUserIDByCredentials(UserData.Username, UserData.Passwword)
 	if err != nil {
 		http.Error(w, "Wrong Username or password", http.StatusUnauthorized)
-		log.Fatal(err)
 		return
 	}
 	key, err := registartion.GenerateJWT(userID)
@@ -116,21 +115,18 @@ func CreateProflie(w http.ResponseWriter, r *http.Request) {
 	path, err := getconfig.GetProfilsDatabasePath()
 	if err != nil {
 		http.Error(w, "Failed to get the path", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	db, err := DB.OpenDataBase(path)
 	if err != nil {
 		http.Error(w, "Failed to open database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	profileID, err := profiles.CreateProfileInDB(db, profileData.UserID, profileData.Name, profileData.Description)
 	if err != nil {
 		http.Error(w, "Failed to insert or get the profileID", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
@@ -157,21 +153,18 @@ func DeletProfile(w http.ResponseWriter, r *http.Request) {
 	path, err := getconfig.GetProfilsDatabasePath()
 	if err != nil {
 		http.Error(w, "error while getting the path for the database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	db, err := db.OpenDataBase(path)
 	if err != nil {
 		http.Error(w, "Failed to open database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	ok, err := profiles.DeletProfile(db, profileData.ProfileID, profileData.UserID)
 	if err != nil {
 		http.Error(w, "Failed to delet profile", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
@@ -202,21 +195,18 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	path, err := getconfig.GetProfilsDatabasePath()
 	if err != nil {
 		http.Error(w, "error while getting the path for the database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	db, err := db.OpenDataBase(path)
 	if err != nil {
 		http.Error(w, "Failed to open database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	ok, err := profiles.InsertGameIntoTable(db, Game.Name, Game.ProfileID, Game.UserID)
 	if err != nil {
 		http.Error(w, "Failed to insert value in the database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
@@ -246,14 +236,12 @@ func GetAllUsersProflies(w http.ResponseWriter, r *http.Request) {
 	path, err := getconfig.GetProfilsDatabasePath()
 	if err != nil {
 		http.Error(w, "Error while getting the path for the database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	db, err := DB.OpenDataBase(path)
 	if err != nil {
 		http.Error(w, "Failed to open database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 	defer db.Close()
@@ -261,7 +249,6 @@ func GetAllUsersProflies(w http.ResponseWriter, r *http.Request) {
 	Profiles, err := profiles.GetAllUsersProfiles(db, Profile.UserID)
 	if err != nil {
 		http.Error(w, "Failed to get Profiles", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
@@ -293,21 +280,18 @@ func DeletGame(w http.ResponseWriter, r *http.Request) {
 	path, err := getconfig.GetProfilsDatabasePath()
 	if err != nil {
 		http.Error(w, "error while getting the path for the database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	db, err := db.OpenDataBase(path)
 	if err != nil {
 		http.Error(w, "Failed to open database", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
 	ok, err := profiles.DeletGame(db, Game.ProfileID, Game.UserID, Game.GameID)
 	if err != nil {
 		http.Error(w, "Failed to delet the game", http.StatusInternalServerError)
-		log.Fatal(err)
 		return
 	}
 
@@ -409,6 +393,51 @@ func GetUsersGameByIDAndProfileID(w http.ResponseWriter, r *http.Request) {
 	w.Write(respBytes)
 }
 
+func ChooseProfile(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var profileData models.ProfileData
+	err = json.Unmarshal(body, &profileData)
+	if err != nil {
+		http.Error(w, "Error unmarshaling request body", http.StatusInternalServerError)
+		return
+	}
+	path, err := getconfig.GetProfilsDatabasePath()
+	if err != nil {
+		http.Error(w, "Failed to get database path", http.StatusInternalServerError)
+		return
+	}
+
+	db, err := db.OpenDataBase(path)
+	if err != nil {
+		http.Error(w, "Failed to open database", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	profile, err := profiles.GetProfileByID(db, profileData.UserID, profileData.ProfileID)
+	if err != nil {
+		http.Error(w, "Failed to fetch games", http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
+
+	respBytes, err := json.Marshal(profile)
+	if err != nil {
+		http.Error(w, "Failed to marshal games to JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respBytes)
+}
+
 func StartInternalServer() error {
 	log.Println("Starting Internal Server")
 	port, err := getconfig.GetInternalPort()
@@ -427,6 +456,7 @@ func StartInternalServer() error {
 	http.HandleFunc("/internal/deletGame", DeletGame)
 	http.HandleFunc("/internal/getGames", GetUsersGames)
 	http.HandleFunc("/internal/getGameById", GetUsersGameByIDAndProfileID)
+	http.HandleFunc("/internal/chooseProfile", ChooseProfile)
 
 	return http.ListenAndServe(portStr, nil)
 }

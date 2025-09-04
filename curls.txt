@@ -1,8 +1,8 @@
 Create User
-    curl -X POST http://localhost:8080/reg -H "Content-Type: application/json" -d '{"username":"ArteShow","password":"arteshow"}'
+    curl -X POST http://localhost:8080/reg -H "Content-Type: application/json" -d '{"username":"Test1","password":"test1"}'
 
 Login
-    curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d '{"username":"ArteShow","password":"arteshow"}'
+    curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d '{"username":"Test1","password":"test1"}'
 
 Create Profile
     curl -X POST http://localhost:8080/createProfile -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"name":"Test","description":"IDK what to insert"}'
@@ -24,3 +24,6 @@ GetGames
 
 Get Game by ID
     curl -X POST http://localhost:8080/getGameById -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"profile_id": 1, "game_id": 2}'
+
+Choose Profile
+    curl -X POST http://localhost:8080/chooseProfile -H "Content-Type: application/json" -H "Authorization: Bearer " -d '{"profile_id": 1}'

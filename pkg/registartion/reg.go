@@ -15,19 +15,16 @@ import (
 func GetJWTKey() (error, string) {
 	path, err := getconfig.GetJWTDatabasePath()
 	if err != nil {
-		log.Fatal(err)
 		return err, ""
 	}
 
 	DB, err := db.OpenDataBase(path)
 	if err != nil {
-		log.Fatal(err)
 		return err, ""
 	}
 
 	key, err3 := db.GetCurrentJWTKey(DB)
 	if err3 != nil {
-		log.Fatal(err3)
 		return err3, ""
 	}
 
@@ -54,13 +51,11 @@ func CheckUserCredentials(username, password string, Databse *sql.DB) (bool, err
 func CheckUserData(userData models.Login) (bool, error) {
 	path, err := getconfig.GetUserdatabasePath()
 	if err != nil {
-		log.Fatal(err)
 		return false, err
 	}
 
 	Database, err := db.OpenDataBase(path)
 	if err != nil {
-		log.Fatal(err)
 		return false, err
 	}
 
@@ -83,7 +78,6 @@ func GenerateJWT(userID int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	err, jwtKey := GetJWTKey()
 	if err != nil {
-		log.Fatal(err)
 		return "", err
 	}
 
@@ -93,7 +87,6 @@ func GenerateJWT(userID int64) (string, error) {
 func GetUserIDByCredentials(username, password string) (int64, error) {
 	path, err := getconfig.GetUserdatabasePath()
 	if err != nil {
-		log.Fatal(err)
 		return 0, err
 	}
 	DB, err := db.OpenDataBase(path)

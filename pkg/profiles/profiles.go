@@ -3,6 +3,7 @@ package profiles
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/ArteShow/Game-Manager/models"
@@ -180,4 +181,57 @@ func GetGameByGameIDProfileIDUserID(db *sql.DB, profileID, userID, gameID int64)
 
 	game.UserID = userID
 	return game, nil
+}
+
+func GetProfileByID(db *sql.DB, userID, profileID int64) (models.ProfileData, error) {
+	var profile models.ProfileData
+	log.Println(userID, profileID)
+	tx, err := db.Begin()
+	if err != nil {
+		return profile, err
+	}
+	defer tx.Rollback()
+
+	query := `SELECT profile_id, user_id, name, description, used_count 
+	          FROM profiles 
+	          WHERE profile_id = ? AND user_id = ?`
+	err = tx.QueryRow(query, profileID, userID).Scan(
+		&profile.ProfileID,
+		&profile.UserID,
+		&profile.Name,
+		&profile.Description,
+		&profile.UsedCount,
+	)
+	if err != nil {
+		return profile, err
+	}
+
+	return profile, nil
+}
+
+func GetGamesByUserAndProfile(db *sql.DB, userID, profileID int64) ([]models.Game, error) {
+	rows, err := db.Query(`
+        SELECT g.game_id, g.profile_id, g.name, p.user_id
+        FROM games g
+        INNER JOIN profiles p ON g.profile_id = p.profile_id
+        WHERE g.profile_id = ? AND p.user_id = ?
+    `, profileID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var games []models.Game
+	for rows.Next() {
+		var g models.Game
+		if err := rows.Scan(&g.GameID, &g.ProfileID, &g.Name, &g.UserID); err != nil {
+			return nil, err
+		}
+		games = append(games, g)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return games, nil
 }

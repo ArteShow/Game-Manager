@@ -115,3 +115,21 @@ func GetHubPort() (int, error) {
 	}
 	return ports.HubPort, nil
 }
+
+func GetTasksFilePath() (string, error) {
+	configFile, err := os.Open("./configs/config.json")
+	if err != nil {
+		log.Println("Error opening config file:", err)
+		return "", err
+	}
+	defer configFile.Close()
+
+	path := &models.TasksPath{}
+	decoder := json.NewDecoder(configFile)
+	err = decoder.Decode(path)
+	if err != nil {
+		log.Println("Error decoding JSON:", err)
+		return "", err
+	}
+	return path.TasksPath, nil
+}
