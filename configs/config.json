@@ -7,5 +7,7 @@
     "jwt_database_path": "database/jwt.db",
     "proflis_database_path": "database/profils.db",
 
-    "task_path": "configs/tasks.json"
+    "task_path": "configs/tasks.json",
+
+    "static_folder_path": "./static"
 }

@@ -12,6 +12,10 @@ type TasksPath struct {
 	TasksPath string `json:"task_path"`
 }
 
+type StaticFolderPath struct {
+	Static string `json:"static_folder_path"`
+}
+
 type Login struct {
 	Username  string `json:"username"`
 	Passwword string `json:"password"`

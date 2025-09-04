@@ -133,3 +133,21 @@ func GetTasksFilePath() (string, error) {
 	}
 	return path.TasksPath, nil
 }
+
+func GetStaticFolderPath() (string, error) {
+	configFile, err := os.Open("./configs/config.json")
+	if err != nil {
+		log.Println("Error opening config file:", err)
+		return "", err
+	}
+	defer configFile.Close()
+
+	paths := &models.StaticFolderPath{}
+	decoder := json.NewDecoder(configFile)
+	err = decoder.Decode(paths)
+	if err != nil {
+		log.Println("Error decoding JSON:", err)
+		return "", err
+	}
+	return paths.Static, nil
+}

@@ -517,9 +517,9 @@ func StartApplicationServer() error {
 	}
 	portStr := ":" + strconv.Itoa(port)
 
+	// API endpoints
 	http.HandleFunc("/reg", RegistereNewUser)
 	http.HandleFunc("/login", LoginNewUser)
-
 	http.Handle("/createProfile", JWTMiddleware(http.HandlerFunc(CreataeNewProfile)))
 	http.Handle("/deletProfile", JWTMiddleware(http.HandlerFunc(DeletProfile)))
 	http.Handle("/createGame", JWTMiddleware(http.HandlerFunc(CreateGame)))
@@ -529,5 +529,14 @@ func StartApplicationServer() error {
 	http.Handle("/getGameById", JWTMiddleware(http.HandlerFunc(GetGameByProfileIDAndUserID)))
 	http.Handle("/chooseProfile", JWTMiddleware(http.HandlerFunc(ChooseProfile)))
 
+	staticPath, err := getconfig.GetStaticFolderPath()
+	if err != nil {
+		return err
+	}
+
+	fs := http.FileServer(http.Dir(staticPath))
+	http.Handle("/", fs)
+
+	log.Printf("Application Server listening on port %d, serving static files from %s\n", port, staticPath)
 	return http.ListenAndServe(portStr, nil)
 }
