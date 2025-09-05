@@ -330,7 +330,7 @@ func GetUsersGames(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	game, err := profiles.GetGameByGameIDProfileIDUserID(db, gameReq.ProfileID, gameReq.UserID, gameReq.GameID)
+	game, err := profiles.GetAllGamesFromAProfile(db, gameReq.ProfileID, gameReq.UserID)
 	if err != nil {
 		http.Error(w, "Failed to fetch games", http.StatusInternalServerError)
 		log.Println(err)

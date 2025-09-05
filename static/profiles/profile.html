@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profiles & Games</title>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="container">
+      <div id="addProfileForm" class="card">
+        <h2>Create a New Profile</h2>
+        <p>Fill in the details below and click "Create Profile"</p>
+        <div class="input-group">
+          <label for="profileName">Name</label>
+          <input type="text" id="profileName" placeholder="Enter name">
+        </div>
+        <div class="input-group">
+          <label for="profileDesc">Description</label>
+          <input type="text" id="profileDesc" placeholder="Enter description">
+        </div>
+        <button id="createProfileBtn">Create Profile</button>
+      </div>
+
+      <div id="profilesContainer" class="profiles-grid"></div>
+    </div>
+  </div>
+
+  <script src="../js/profile.js"></script>
+</body>
+</html>

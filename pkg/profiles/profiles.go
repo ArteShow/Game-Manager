@@ -3,7 +3,6 @@ package profiles
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/ArteShow/Game-Manager/models"
@@ -185,7 +184,6 @@ func GetGameByGameIDProfileIDUserID(db *sql.DB, profileID, userID, gameID int64)
 
 func GetProfileByID(db *sql.DB, userID, profileID int64) (models.ProfileData, error) {
 	var profile models.ProfileData
-	log.Println(userID, profileID)
 	tx, err := db.Begin()
 	if err != nil {
 		return profile, err
