@@ -1,12 +1,55 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const month = new Date().getMonth(); 
-    const themeLink = document.getElementById("theme-style");
+const API_BASE = "http://localhost:8080";
+    const month = new Date().getMonth() + 1; 
+    let theme = "spring.css";
+    if (month >= 3 && month <= 5) theme = "css/spring.css"; 
+    else if (month >= 6 && month <= 8) theme = "css/summer.css"; 
+    else if (month >= 9 && month <= 11) theme = "css/autumn.css"; 
+    else theme = "css/winter.css"; 
+    document.getElementById("theme-style").href = theme;
 
-    let season;
-    if (month >= 2 && month <= 4) season = "spring";
-    else if (month >= 5 && month <= 7) season = "summer";
-    else if (month >= 8 && month <= 10) season = "autumn";
-    else season = "winter";
+    document.getElementById("register-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("reg-username").value;
+      const password = document.getElementById("reg-password").value;
 
-    themeLink.href = `css/${season}.css`;
-});
+      try {
+        const res = await fetch(`${API_BASE}/reg`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.text();
+        document.getElementById("reg-message").textContent = res.ok ? "✅ Registered successfully" : `❌ Error: ${data}`;
+      } catch {
+        document.getElementById("reg-message").textContent = "❌ Network error";
+      }
+    });
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("login-username").value;
+      const password = document.getElementById("login-password").value;
+
+      try {
+        const res = await fetch(`${API_BASE}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.text();
+        if (res.ok) {
+          document.getElementById("login-message").textContent = "✅ Logged in successfully";
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.token) {
+                console.log(parsed.token)
+              localStorage.setItem("jwt", parsed.token);
+            }
+          } catch {}
+        } else {
+          document.getElementById("login-message").textContent = `❌ Error: ${data}`;
+        }
+      } catch {
+        document.getElementById("login-message").textContent = "❌ Network error";
+      }
+    });

@@ -1,77 +1,80 @@
 body {
-    margin: 0;
-    font-family: 'Arial', sans-serif;
-    background: #f5d6a1; /* autumn leaves vibe */
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(to bottom, #f5d6a1, #f0b97d);
 }
 
 .page-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
 .container {
-    display: flex;
-    gap: 40px;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .card {
-    background-color: #ffffffcc;
-    border-radius: 20px;
-    padding: 30px 40px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    width: 300px;
-    transition: transform 0.2s;
+  background-color: #ffffffee;
+  border-radius: 20px;
+  padding: 30px 40px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  width: 320px;
+  transition: transform 0.2s, background 0.3s;
 }
 
 .card:hover {
-    transform: translateY(-5px);
+  transform: translateY(-5px);
 }
 
 h2 {
-    margin-top: 0;
-    color: #d35400; /* deep orange */
-    text-align: center;
-}
-
-.input-group {
-    margin-bottom: 15px;
-}
-
-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-input[type="text"], input[type="password"] {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #d35400;
-    box-sizing: border-box;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    border: none;
-    background-color: #d35400;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-button:hover {
-    background-color: #a84300;
+  margin-top: 0;
+  color: #d35400;
+  text-align: center;
 }
 
 p {
-    font-size: 14px;
-    color: #333;
-    text-align: center;
+  text-align: center;
+  color: #444;
+  font-size: 14px;
+}
+
+.input-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #d35400;
+}
+
+input[type="text"], input[type="password"] {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d35400;
+  box-sizing: border-box;
+  background: #fffaf5;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: #d35400;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background-color: #a84300;
 }

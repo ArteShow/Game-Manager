@@ -509,6 +509,21 @@ func ChooseProfile(w http.ResponseWriter, r *http.Request) {
 	w.Write(respBody)
 }
 
+func withCORS(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	})
+}
+
 func StartApplicationServer() error {
 	log.Println("Starting Application Server")
 	port, err := getconfig.GetApplicationPort()
@@ -517,26 +532,25 @@ func StartApplicationServer() error {
 	}
 	portStr := ":" + strconv.Itoa(port)
 
-	// API endpoints
-	http.HandleFunc("/reg", RegistereNewUser)
-	http.HandleFunc("/login", LoginNewUser)
-	http.Handle("/createProfile", JWTMiddleware(http.HandlerFunc(CreataeNewProfile)))
-	http.Handle("/deletProfile", JWTMiddleware(http.HandlerFunc(DeletProfile)))
-	http.Handle("/createGame", JWTMiddleware(http.HandlerFunc(CreateGame)))
-	http.Handle("/getAllUsersProflies", JWTMiddleware(http.HandlerFunc(GetAllUsersProfiles)))
-	http.Handle("/deletGame", JWTMiddleware(http.HandlerFunc(DeletGame)))
-	http.Handle("/getGames", JWTMiddleware(http.HandlerFunc(GetAllUsersGames)))
-	http.Handle("/getGameById", JWTMiddleware(http.HandlerFunc(GetGameByProfileIDAndUserID)))
-	http.Handle("/chooseProfile", JWTMiddleware(http.HandlerFunc(ChooseProfile)))
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/reg", RegistereNewUser)
+	mux.HandleFunc("/login", LoginNewUser)
+	mux.Handle("/createProfile", JWTMiddleware(http.HandlerFunc(CreataeNewProfile)))
+	mux.Handle("/deletProfile", JWTMiddleware(http.HandlerFunc(DeletProfile)))
+	mux.Handle("/createGame", JWTMiddleware(http.HandlerFunc(CreateGame)))
+	mux.Handle("/getAllUsersProflies", JWTMiddleware(http.HandlerFunc(GetAllUsersProfiles)))
+	mux.Handle("/deletGame", JWTMiddleware(http.HandlerFunc(DeletGame)))
+	mux.Handle("/getGames", JWTMiddleware(http.HandlerFunc(GetAllUsersGames)))
+	mux.Handle("/getGameById", JWTMiddleware(http.HandlerFunc(GetGameByProfileIDAndUserID)))
+	mux.Handle("/chooseProfile", JWTMiddleware(http.HandlerFunc(ChooseProfile)))
 
 	staticPath, err := getconfig.GetStaticFolderPath()
 	if err != nil {
 		return err
 	}
-
 	fs := http.FileServer(http.Dir(staticPath))
-	http.Handle("/", fs)
+	mux.Handle("/", fs)
 
-	log.Printf("Application Server listening on port %d, serving static files from %s\n", port, staticPath)
-	return http.ListenAndServe(portStr, nil)
+	return http.ListenAndServe(portStr, withCORS(mux))
 }

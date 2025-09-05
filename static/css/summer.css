@@ -1,77 +1,76 @@
 body {
-    margin: 0;
-    font-family: 'Arial', sans-serif;
-    background: #ffeaa7; /* sunny yellow */
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(to bottom, #ffe29f, #ffa751);
 }
 
 .page-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
 .container {
-    display: flex;
-    gap: 40px;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .card {
-    background-color: #ffffffcc;
-    border-radius: 20px;
-    padding: 30px 40px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    width: 300px;
-    transition: transform 0.2s;
+  background-color: #ffffffee;
+  border-radius: 20px;
+  padding: 30px 40px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  width: 320px;
+  transition: transform 0.2s;
 }
 
 .card:hover {
-    transform: translateY(-5px);
+  transform: translateY(-5px);
 }
 
 h2 {
-    margin-top: 0;
-    color: #ff6b6b;
-    text-align: center;
-}
-
-.input-group {
-    margin-bottom: 15px;
-}
-
-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-input[type="text"], input[type="password"] {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ff6b6b;
-    box-sizing: border-box;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    border: none;
-    background-color: #ff6b6b;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-button:hover {
-    background-color: #d94f4f;
+  margin-top: 0;
+  color: #ff6f00;
+  text-align: center;
 }
 
 p {
-    font-size: 14px;
-    color: #333;
-    text-align: center;
+  text-align: center;
+  color: #444;
+  font-size: 14px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #e65100;
+}
+
+input[type="text"], input[type="password"] {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ff9800;
+  box-sizing: border-box;
+  background: #fffaf3;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: #ff6f00;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background-color: #e65100;
 }

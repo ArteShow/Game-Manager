@@ -1,47 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Manager - Login/Register</title>
-    <link rel="stylesheet" href="css/summer.css" id="theme-style">
-    <script src="js/theme.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login / Register</title>
+  <link id="theme-style" rel="stylesheet" href="css/autumn.css"> 
 </head>
 <body>
-    <div class="page-wrapper">
-        <div class="container">
-            <div class="card reg">
-                <h2>Register</h2>
-                <p>Create your account to start playing!</p>
-                <form id="registerForm">
-                    <div class="input-group">
-                        <label for="regUsername">Username</label>
-                        <input type="text" id="regUsername" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="regPassword">Password</label>
-                        <input type="password" id="regPassword" required>
-                    </div>
-                    <button type="submit">Register</button>
-                </form>
-            </div>
+  <div class="page-wrapper">
+    <div class="container">
+      
+      <div class="card">
+        <h2>Register</h2>
+        <p>Create a new account</p>
+        <form id="register-form">
+          <div class="input-group">
+            <label for="reg-username">Username</label>
+            <input type="text" id="reg-username" required>
+          </div>
+          <div class="input-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" required>
+          </div>
+          <button type="submit">Register</button>
+        </form>
+        <p id="reg-message"></p>
+      </div>
 
-            <div class="card login">
-                <h2>Login</h2>
-                <p>Enter your credentials to access your account.</p>
-                <form id="loginForm">
-                    <div class="input-group">
-                        <label for="loginUsername">Username</label>
-                        <input type="text" id="loginUsername" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" required>
-                    </div>
-                    <button type="submit">Login</button>
-                </form>
-            </div>
-        </div>
+      <div class="card">
+        <h2>Login</h2>
+        <p>Welcome back! Please log in</p>
+        <form id="login-form">
+          <div class="input-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" required>
+          </div>
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required>
+          </div>
+          <button type="submit">Login</button>
+        </form>
+        <p id="login-message"></p>
+      </div>
+
     </div>
+  </div>
+  <script src="js/theme.js"></script>
 </body>
 </html>
