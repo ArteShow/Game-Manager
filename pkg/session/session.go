@@ -49,12 +49,19 @@ func (s *SessionServer) HandleWS(w http.ResponseWriter, r *http.Request) {
 	log.Printf("HandleWS: roomID=%d profileID=%d\n", roomID, profileID)
 
 	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" || len(authHeader) <= 7 || authHeader[:7] != "Bearer " {
-		http.Error(w, "Authorization header required", http.StatusUnauthorized)
-		log.Println("HandleWS: Missing or invalid Authorization header")
+	var tokenStr string
+	if authHeader != "" && len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		tokenStr = authHeader[7:]
+	} else {
+		tokenStr = r.URL.Query().Get("token")
+	}
+
+	if tokenStr == "" {
+		http.Error(w, "Authorization header or token query param required", http.StatusUnauthorized)
+		log.Println("HandleWS: Missing or invalid Authorization header and no token query param")
 		return
 	}
-	tokenStr := authHeader[7:]
+
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		return s.JWTSecret, nil
 	})

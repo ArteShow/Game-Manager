@@ -35,82 +35,11 @@ function getAuthHeader() {
   return { "Content-Type": "application/json", "Authorization": "Bearer " + localStorage.getItem("jwt") };
 }
 
-let _confirmOverlay = null;
-let _confirmResolve = null;
-let _confirmOpen = false;
-
-function ensureConfirmExists() {
-  if (_confirmOverlay) return;
-  _confirmOverlay = document.createElement("div");
-  _confirmOverlay.className = "custom-confirm-overlay";
-  _confirmOverlay.innerHTML = `
-    <div class="custom-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-desc">
-      <h4 id="confirm-title">Confirm</h4>
-      <p id="confirm-desc">Are you sure?</p>
-      <div class="actions">
-        <button class="btn btn-cancel">Cancel</button>
-        <button class="btn btn-confirm">Confirm</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(_confirmOverlay);
-  const cancelBtn = _confirmOverlay.querySelector(".btn-cancel");
-  const confirmBtn = _confirmOverlay.querySelector(".btn-confirm");
-  cancelBtn.addEventListener("click", () => {
-    closeConfirm(false);
-  });
-  confirmBtn.addEventListener("click", () => {
-    closeConfirm(true);
-  });
-  _confirmOverlay.addEventListener("click", (e) => {
-    if (e.target === _confirmOverlay) closeConfirm(false);
-  });
-  window.addEventListener("keydown", (e) => {
-    if (!_confirmOpen) return;
-    if (e.key === "Escape") closeConfirm(false);
-  });
-}
-
-function openConfirm(title, message) {
-  ensureConfirmExists();
-  if (_confirmOpen) return Promise.resolve(false);
-  _confirmOpen = true;
-  const titleEl = _confirmOverlay.querySelector("#confirm-title");
-  const descEl = _confirmOverlay.querySelector("#confirm-desc");
-  titleEl.textContent = title || "Confirm";
-  descEl.textContent = message || "";
-  _confirmOverlay.classList.add("open");
-  const confirmBtn = _confirmOverlay.querySelector(".btn-confirm");
-  const cancelBtn = _confirmOverlay.querySelector(".btn-cancel");
-  const previouslyFocused = document.activeElement;
-  confirmBtn.focus();
-  return new Promise((resolve) => {
-    _confirmResolve = (val) => {
-      resolve(val);
-      try { if (previouslyFocused) previouslyFocused.focus(); } catch(e){}
-    };
-  });
-}
-
-function closeConfirm(result) {
-  if (!_confirmOpen) return;
-  _confirmOpen = false;
-  _confirmOverlay.classList.remove("open");
-  if (typeof _confirmResolve === "function") {
-    _confirmResolve(Boolean(result));
-    _confirmResolve = null;
-  }
-}
-
-async function showConfirm(message, title) {
-  return await openConfirm(title || "Please confirm", message || "");
-}
-
 async function chooseProfileOnServer(profileId) {
   const numeric = Number(profileId);
   const payloadProfileId = Number.isFinite(numeric) && !Number.isNaN(numeric) ? numeric : profileId;
   try {
-    await fetch("http://localhost:8080/chooseProfile", {
+    await fetch("http://192.168.31.239:8080/chooseProfile", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ profile_id: payloadProfileId })
@@ -133,7 +62,7 @@ function selectProfileById(id) {
 
 async function getProfiles() {
   try {
-    const res = await fetch("http://localhost:8080/getAllUsersProflies", {
+    const res = await fetch("http://192.168.31.239:8080/getAllUsersProflies", {
       method: "GET",
       headers: getAuthHeader()
     });
@@ -165,7 +94,7 @@ async function createProfile() {
     return;
   }
   try {
-    const res = await fetch("http://localhost:8080/createProfile", {
+    const res = await fetch("http://192.168.31.239:8080/createProfile", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ name, description })
@@ -188,7 +117,7 @@ async function deletProfile(profileId) {
   try {
     const numeric = Number(profileId);
     const payload = Number.isFinite(numeric) && !Number.isNaN(numeric) ? numeric : profileId;
-    const res = await fetch("http://localhost:8080/deletProfile", {
+    const res = await fetch("http://192.168.31.239:8080/deletProfile", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ profile_id: payload })
@@ -210,7 +139,7 @@ async function deletProfile(profileId) {
 async function deletGame(profile_id, game_id) {
   try {
     const payload = { profile_id: Number(profile_id) || profile_id, game_id: Number(game_id) || game_id };
-    const res = await fetch("http://localhost:8080/deletGame", {
+    const res = await fetch("http://192.168.31.239:8080/deletGame", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify(payload)
@@ -233,7 +162,7 @@ async function submitCreateGameInline(name, profileId) {
   const numeric = Number(profileId);
   const payloadProfileId = Number.isFinite(numeric) && !Number.isNaN(numeric) ? numeric : profileId;
   try {
-    const res = await fetch("http://localhost:8080/createGame", {
+    const res = await fetch("http://192.168.31.239:8080/createGame", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ name, profile_id: payloadProfileId })
@@ -254,7 +183,7 @@ async function loadGamesForProfile(profileId) {
   try {
     const numeric = Number(profileId);
     const payload = Number.isFinite(numeric) && !Number.isNaN(numeric) ? numeric : profileId;
-    const res = await fetch("http://localhost:8080/getGames", {
+    const res = await fetch("http://192.168.31.239:8080/getGames", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ profile_id: payload })
@@ -266,48 +195,6 @@ async function loadGamesForProfile(profileId) {
     console.error("Error loading games for profile:", err);
     return [];
   }
-}
-
-function buildGameListElement(games, profileId) {
-  const ul = document.createElement("ul");
-  ul.className = "games-list";
-  games.forEach(g => {
-    const gid = g.game_id || g.GameID || g.id || "";
-    const name = g.name || g.Name || "";
-    const li = document.createElement("li");
-    li.className = "game-item";
-    li.dataset.gameId = String(gid);
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    const nameSpan = document.createElement("div");
-    nameSpan.className = "game-name";
-    nameSpan.textContent = name;
-    meta.appendChild(nameSpan);
-    const del = document.createElement("button");
-    del.className = "game-delete-btn";
-    del.textContent = "Delete";
-    del.title = "Delete game";
-    del.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const ok = await showConfirm("Delete this game?", "Delete game");
-      if (!ok) return;
-      await deletGame(profileId, gid);
-    });
-    li.appendChild(meta);
-    li.appendChild(del);
-    ul.appendChild(li);
-  });
-  if (games.length === 0) {
-    const empty = document.createElement("div");
-    empty.style.color = "rgba(255,255,255,0.85)";
-    empty.style.fontSize = "13px";
-    empty.style.padding = "6px 0";
-    empty.textContent = "No games yet. Add one!";
-    const li = document.createElement("li");
-    li.appendChild(empty);
-    ul.appendChild(li);
-  }
-  return ul;
 }
 
 function renderProfileCard(p) {
@@ -326,8 +213,6 @@ function renderProfileCard(p) {
   deleteBtn.textContent = "Delete";
   deleteBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
-    const ok = await showConfirm("Delete this profile? This cannot be undone.", "Delete profile");
-    if (!ok) return;
     await deletProfile(id);
   });
   card.appendChild(deleteBtn);
@@ -371,7 +256,6 @@ function renderProfileCard(p) {
   gamesPanel.appendChild(gamesListHolder);
   card.appendChild(gamesPanel);
 
-  // new Choose Profile button
   const chooseBtn = document.createElement("button");
   chooseBtn.className = "choose-btn";
   chooseBtn.textContent = "Choose Profile";
@@ -381,7 +265,7 @@ function renderProfileCard(p) {
     localStorage.setItem("currentProfileId", id);
     currentProfileId = String(id);
     try { await chooseProfileOnServer(id); } catch (err) { console.warn("chooseProfileOnServer failed", err); }
-    window.location.href = ""; // set destination later
+    window.location.href = "../roomsFolder/rooms.html";
   });
   card.appendChild(chooseBtn);
 
@@ -395,24 +279,19 @@ function renderProfileCard(p) {
       const li = document.createElement("li");
       li.className = "game-item";
       li.textContent = g.name;
-
       const del = document.createElement("button");
       del.className = "game-delete-btn";
       del.textContent = "Delete";
       del.addEventListener("click", async (e) => {
         e.stopPropagation();
-        const ok = await showConfirm("Delete this game?", "Delete game");
-        if (!ok) return;
         await deletGame(id, g.game_id);
       });
-
       li.appendChild(del);
       ul.appendChild(li);
     });
     gamesListHolder.appendChild(ul);
   });
 }
-
 
 createBtn && createBtn.addEventListener("click", createProfile);
 
@@ -425,7 +304,7 @@ getProfiles();
 
 async function loginAndStoreToken(username, password) {
   try {
-    const res = await fetch("http://localhost:8080/login", {
+    const res = await fetch("http://192.168.31.239:8080/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
@@ -450,18 +329,5 @@ async function loginAndStoreToken(username, password) {
     throw err;
   }
 }
-
-document.addEventListener("click", function(e) {
-  if (e.target.classList.contains("choose-btn")) {
-    const card = e.target.closest(".profileCard");
-    const profileId = card.getAttribute("data-profile-id");
-
-    if (profileId) {
-      localStorage.setItem("selectedProfileId", profileId);
-      window.location.href = "";
-    }
-  }
-});
-
 
 window.loginAndStoreToken = loginAndStoreToken;

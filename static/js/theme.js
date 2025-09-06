@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://192.168.31.239:8080";
 
 const month = new Date().getMonth() + 1; 
 let theme = "spring.css"; 
