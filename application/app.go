@@ -452,6 +452,54 @@ func GetGameByProfileIDAndUserID(w http.ResponseWriter, r *http.Request) {
 	w.Write(respBody)
 }
 
+func GetUsername(w http.ResponseWriter, r *http.Request) {
+	log.Println("GetUsername: forwarding request to internal server")
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var req models.UserRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	payload, err := json.Marshal(map[string]int64{"userID": req.UserID})
+	if err != nil {
+		http.Error(w, "Failed to encode payload", http.StatusInternalServerError)
+		return
+	}
+
+	port, err := getconfig.GetInternalPort()
+	if err != nil {
+		http.Error(w, "Internal server port not available", http.StatusInternalServerError)
+		return
+	}
+	url := "http://localhost:" + strconv.Itoa(port) + "/internal/getUsername"
+
+	resp, err := http.Post(url, "application/json", bytes.NewReader(payload))
+	if err != nil {
+		http.Error(w, "Error sending request to internal server", http.StatusInternalServerError)
+		log.Println("GetUsername: post to internal failed:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to read response from internal server", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(respBody)
+}
+
 func ChooseProfile(w http.ResponseWriter, r *http.Request) {
 	log.Println("Choosing a profile for a user")
 
@@ -544,6 +592,7 @@ func StartApplicationServer() error {
 	mux.Handle("/getGames", JWTMiddleware(http.HandlerFunc(GetAllUsersGames)))
 	mux.Handle("/getGameById", JWTMiddleware(http.HandlerFunc(GetGameByProfileIDAndUserID)))
 	mux.Handle("/chooseProfile", JWTMiddleware(http.HandlerFunc(ChooseProfile)))
+	mux.Handle("/getUsername", JWTMiddleware(http.HandlerFunc(GetUsername)))
 
 	staticPath, err := getconfig.GetStaticFolderPath()
 	if err != nil {

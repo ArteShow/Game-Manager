@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -438,6 +439,52 @@ func ChooseProfile(w http.ResponseWriter, r *http.Request) {
 	w.Write(respBytes)
 }
 
+func GetUserName(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var req models.UserRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		return
+	}
+	dbPath, err := getconfig.GetUserdatabasePath()
+	if err != nil {
+		http.Error(w, "Failed to get tyhe path", http.StatusInternalServerError)
+		return
+	}
+
+	dbConn, err := db.OpenDataBase(dbPath)
+	if err != nil {
+		http.Error(w, "Failed to open database", http.StatusInternalServerError)
+		return
+	}
+	defer dbConn.Close()
+
+	var username string
+	err = dbConn.QueryRow("SELECT username FROM users WHERE user_id = ?", req.UserID).Scan(&username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "User not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Database query error", http.StatusInternalServerError)
+			log.Println("GetUserName query error:", err)
+		}
+		return
+	}
+
+	resp := models.UserResponse{Username: username}
+	respBytes, _ := json.Marshal(resp)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respBytes)
+}
+
 func StartInternalServer() error {
 	log.Println("Starting Internal Server")
 	port, err := getconfig.GetInternalPort()
@@ -457,6 +504,7 @@ func StartInternalServer() error {
 	http.HandleFunc("/internal/getGames", GetUsersGames)
 	http.HandleFunc("/internal/getGameById", GetUsersGameByIDAndProfileID)
 	http.HandleFunc("/internal/chooseProfile", ChooseProfile)
+	http.HandleFunc("/internal/getUsername", GetUserName)
 
 	return http.ListenAndServe(portStr, nil)
 }

@@ -1,6 +1,8 @@
 package models
 
-import "sync"
+import (
+	"sync"
+)
 
 type Ports struct {
 	ApplicationPort int `json:"app_port"`
@@ -44,9 +46,10 @@ type Game struct {
 }
 
 type Room struct {
-	Users    []int64
-	RoomName string `json:"room_name"`
-	Mu       sync.Mutex
+	Users     []int64
+	RoomName  string `json:"room_name"`
+	CreatorID int64  `json:"creator_id"`
+	Mu        sync.Mutex
 }
 
 type HubCache struct {
@@ -62,6 +65,14 @@ type HubCache struct {
 type JoinRequest struct {
 	UserID int64
 	RoomID int64
+}
+
+type UserRequest struct {
+	UserID int64 `json:"userID"`
+}
+
+type UserResponse struct {
+	Username string `json:"username"`
 }
 
 type LeaveRequest struct {

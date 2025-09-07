@@ -129,12 +129,38 @@ func (h *Hub) CreateRoom() http.HandlerFunc {
 		}
 		log.Printf("CreateRoom: Room name = %s\n", newRoom.RoomName)
 
+		authHeader := r.Header.Get("Authorization")
+		tokenStr := ""
+		if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+			tokenStr = authHeader[7:]
+		} else {
+			tokenStr = r.URL.Query().Get("token")
+		}
+
+		if tokenStr == "" {
+			http.Error(w, "Missing token", http.StatusUnauthorized)
+			return
+		}
+
+		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+			return h.JWTSecret, nil
+		})
+		if err != nil || !token.Valid {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		claims := token.Claims.(jwt.MapClaims)
+		userID := int64(claims["userID"].(float64))
+		log.Printf("CreateRoom: userID %d is creating the room\n", userID)
+
 		h.Mu.Lock()
 		h.roomCounter++
 		roomID := h.roomCounter
 		room := &models.Room{
-			RoomName: newRoom.RoomName,
-			Users:    []int64{},
+			RoomName:  newRoom.RoomName,
+			Users:     []int64{},
+			CreatorID: userID,
 		}
 		h.Cache.Rooms[roomID] = room
 		h.Mu.Unlock()
@@ -193,7 +219,7 @@ func (h *Hub) CreateRoom() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"roomID": %d, "roomName": "%s"}`, roomID, newRoom.RoomName)))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"roomID": %d, "roomName": "%s", "creatorID": %d}`, roomID, newRoom.RoomName, userID)))
 	}
 }
 
@@ -255,19 +281,22 @@ func (h *Hub) GetRooms() http.HandlerFunc {
 		defer h.Mu.Unlock()
 
 		type roomInfo struct {
-			RoomID   int64   `json:"room_id"`
-			RoomName string  `json:"room_name"`
-			Users    []int64 `json:"users"`
+			RoomID    int64   `json:"room_id"`
+			RoomName  string  `json:"room_name"`
+			Users     []int64 `json:"users"`
+			CreatorID int64   `json:"creator_id"`
 		}
 
 		rooms := make([]roomInfo, 0, len(h.Cache.Rooms))
 		for id, room := range h.Cache.Rooms {
 			rooms = append(rooms, roomInfo{
-				RoomID:   id,
-				RoomName: room.RoomName,
-				Users:    room.GetUsers(),
+				RoomID:    id,
+				RoomName:  room.RoomName,
+				Users:     room.GetUsers(),
+				CreatorID: room.CreatorID,
 			})
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(rooms); err != nil {
 			http.Error(w, "Failed to encode rooms", http.StatusInternalServerError)
