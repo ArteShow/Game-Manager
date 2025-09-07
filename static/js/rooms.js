@@ -87,6 +87,59 @@ function attachRoomCardEvents(card, room) {
       delete wsConnections[room.room_id];
     });
   }
+  const startBtn = card.querySelector(".start-btn");
+  if (startBtn) {
+    startBtn.addEventListener("click", () => {
+      const ws = wsConnections[room.room_id];
+      if (!ws) {
+        alert("Join the room first!");
+        return;
+      }
+
+      ws.send(JSON.stringify({ message: "START" }));
+      const statusEl = card.querySelector(".join-status");
+      if (statusEl) statusEl.textContent = "Start message sent! Waiting for game...";
+
+      const gameListener = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "game_chosen") {
+            const gameName = data.game?.name || "unknown";
+            localStorage.setItem("currentGame", gameName);
+
+            const gameScreen = document.getElementById("gameScreen");
+            const gameTitle = document.getElementById("gameTitle");
+            const playersList = document.getElementById("playersList");
+
+            if (gameScreen && gameTitle && playersList) {
+              gameTitle.textContent = `Game started: ${gameName}`;
+              playersList.innerHTML = ""; 
+
+              (data.users || []).forEach(userID => {
+                const li = document.createElement("li");
+                li.className = "game-item";
+                li.textContent = `UserID: ${userID}`;
+                playersList.appendChild(li);
+              });
+
+              gameScreen.style.display = "flex";
+            }
+
+            document.getElementById("roomsContainer")?.parentElement?.classList.add("hidden");
+
+            ws.removeEventListener("message", gameListener);
+          }
+
+        } catch (e) {
+          console.warn("Non-JSON WS message", event.data);
+        }
+      };
+
+      ws.addEventListener("message", gameListener);
+    });
+  }
+
+
 
   const delBtn = card.querySelector(".delete-btn");
   if (delBtn) {
@@ -138,10 +191,10 @@ function renderRoomsWithPending(servers = null) {
   }
 
   serverRooms.forEach(room => {
-    const card = document.createElement("div");
-    card.className = "card profileCard";
-    card.setAttribute("data-room-id", room.room_id);
-    card.innerHTML = `
+  const card = document.createElement("div");
+  card.className = "card profileCard";
+  card.setAttribute("data-room-id", room.room_id);
+  card.innerHTML = `
       <h2>${escapeHtml(room.room_name)}</h2>
       <div class="games-panel">
         <div class="games-header"><span>Users in room</span></div>
@@ -151,12 +204,14 @@ function renderRoomsWithPending(servers = null) {
       </div>
       <button class="choose-btn join-btn">Join Room</button>
       <button class="leave-btn">Leave Room</button>
+      <button class="start-btn">Start</button>
       <button class="delete-btn">×</button>
-      <div class="join-status" style="margin-top:8px; font-size:14px; color:#fff;"></div>
+      <div class="join-status"></div>
     `;
     attachRoomCardEvents(card, room);
     container.appendChild(card);
   });
+
 
   const serverNames = new Set(serverRooms.map(r => String(r.room_name)));
   Object.values(pendingRooms).forEach(p => {
@@ -173,11 +228,13 @@ function renderRoomsWithPending(servers = null) {
       <button class="choose-btn join-btn" disabled>Join Room</button>
       <button class="leave-btn" disabled>Leave Room</button>
       <button class="delete-btn" disabled>×</button>
-      <div class="join-status" style="margin-top:8px; font-size:14px; color:#fff;">Pending creation...</div>
+      <div class="join-status">Pending creation...</div>
     `;
     container.appendChild(card);
   });
 }
+
+
 
 function renderRoomsWithPendingLastKnown() {
   renderRoomsWithPending(lastKnownServerRooms || []);

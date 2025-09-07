@@ -152,7 +152,16 @@ func (r *RoomServer) Start() {
 						r.broadcastToRoom(map[string]interface{}{"type": "error", "error": err.Error()})
 						continue
 					}
-					r.broadcastToRoom(map[string]interface{}{"type": "game_chosen", "game": game})
+
+					r.mu.Lock()
+					usersInRoom := r.Room.GetUsers()
+					r.mu.Unlock()
+
+					r.broadcastToRoom(map[string]interface{}{
+						"type":  "game_chosen",
+						"game":  game,
+						"users": usersInRoom,
+					})
 				}
 
 				if msg.Message == "TASK" {
