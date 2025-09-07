@@ -173,6 +173,28 @@ func (r *RoomServer) Start() {
 					r.broadcastToRoom(map[string]interface{}{"type": "task_chosen", "task": task})
 				}
 
+				if msg.Message == "STOP_ROOM" {
+					r.broadcastToRoom(map[string]interface{}{
+						"type":  "room_stopped",
+						"room":  r.RoomID,
+						"users": r.Room.GetUsers(),
+					})
+
+					r.mu.Lock()
+					for userID, conn := range r.conns {
+						_ = conn.Close()
+						delete(r.conns, userID)
+						log.Printf("Room %d: Closed connection for user %d\n", r.RoomID, userID)
+					}
+					r.mu.Unlock()
+
+					for _, userID := range r.Room.GetUsers() {
+						r.Room.RemoveUser(userID)
+					}
+
+					log.Printf("Room %d: Stopped by user %d\n", r.RoomID, msg.UserID)
+				}
+
 			case <-r.stop:
 				r.broadcastToRoom(map[string]interface{}{
 					"type":  "room_closed",

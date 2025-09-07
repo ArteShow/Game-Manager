@@ -58,7 +58,13 @@ function attachRoomCardEvents(card, room) {
           const data = JSON.parse(event.data);
           if (data.type === "user_joined") statusEl.textContent = `User ${data.user} joined. Total: ${data.users.length}`;
           else if (data.type === "user_left") statusEl.textContent = `User ${data.user} left. Total: ${data.users.length}`;
-          else if (data.type === "task_chosen") statusEl.textContent = `Task: ${data.task}`;
+          else if (data.type === "task_chosen") {
+            const taskDisplay = document.getElementById("taskDisplay");
+            if (taskDisplay) {
+              taskDisplay.textContent = `Task: ${data.task}`;
+              taskDisplay.classList.add("glow-task");
+            }
+          }
           else if (data.type === "game_chosen") statusEl.textContent = `Game chosen: ${data.game?.name || JSON.stringify(data.game)}`;
         } catch (e) {
           console.log("non-json ws message", event.data);
@@ -87,6 +93,7 @@ function attachRoomCardEvents(card, room) {
       delete wsConnections[room.room_id];
     });
   }
+
   const startBtn = card.querySelector(".start-btn");
   if (startBtn) {
     startBtn.addEventListener("click", () => {
@@ -97,7 +104,6 @@ function attachRoomCardEvents(card, room) {
       }
 
       ws.send(JSON.stringify({ message: "START" }));
-      const statusEl = card.querySelector(".join-status");
       if (statusEl) statusEl.textContent = "Start message sent! Waiting for game...";
 
       const gameListener = (event) => {
@@ -110,24 +116,53 @@ function attachRoomCardEvents(card, room) {
             const gameScreen = document.getElementById("gameScreen");
             const gameTitle = document.getElementById("gameTitle");
             const playersList = document.getElementById("playersList");
+            const taskDisplay = document.getElementById("taskDisplay");
+            const gameEndedBtn = document.getElementById("gameEndedBtn");
+            const closeBtn = document.getElementById("closeGameBtn");
 
-            if (gameScreen && gameTitle && playersList) {
+            if (gameScreen && gameTitle && playersList && taskDisplay && gameEndedBtn && closeBtn) {
+              document.getElementById("roomsContainer")?.parentElement?.classList.add("hidden");
+
               gameTitle.textContent = `Game started: ${gameName}`;
-              playersList.innerHTML = ""; 
+              gameTitle.style.fontSize = "32px";
+              playersList.style.display = "none";
+              statusEl.style.display = "none";
 
-              (data.users || []).forEach(userID => {
-                const li = document.createElement("li");
-                li.className = "game-item";
-                li.textContent = `UserID: ${userID}`;
-                playersList.appendChild(li);
-              });
+              taskDisplay.textContent = "";
+              taskDisplay.style.fontSize = "36px";
 
               gameScreen.style.display = "flex";
+
+              gameEndedBtn.style.display = "inline-block";
+              gameEndedBtn.onclick = () => {
+                ws.send(JSON.stringify({ message: "TASK" }));
+                taskDisplay.textContent = "Waiting for task from server...";
+                gameEndedBtn.style.display = "none";
+              };
+
+              closeBtn.style.display = "inline-block";
+              closeBtn.onclick = async () => {
+                try {
+                  ws.send(JSON.stringify({ message: "STOP_ROOM" }));
+
+                  if (wsConnections[room.room_id]) {
+                    wsConnections[room.room_id].close();
+                    delete wsConnections[room.room_id];
+                  }
+
+                  window.location.reload();
+                } catch (err) {
+                  console.error("Failed to stop room", err);
+                }
+              };
             }
 
-            document.getElementById("roomsContainer")?.parentElement?.classList.add("hidden");
-
             ws.removeEventListener("message", gameListener);
+          }
+
+          if (data.type === "task_chosen") {
+            const taskDisplay = document.getElementById("taskDisplay");
+            if (taskDisplay) taskDisplay.textContent = `Task: ${data.task}`;
           }
 
         } catch (e) {

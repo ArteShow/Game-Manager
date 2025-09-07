@@ -7,12 +7,16 @@
   <link id="season-css" rel="stylesheet" href="">
 </head>
 <body>
-  <div id="gameScreen" class="page-wrapper" style="display:none;">
-    <div class="container">
-      <h2 id="gameTitle"></h2>
-      <div id="playersList" class="games-list"></div>
+  <div id="gameScreen" class="page-wrapper" style="display:none; flex-direction: column; gap: 20px; align-items: center;">
+    <h1 id="gameTitle"></h1>
+    <ul id="playersList"></ul>
+    <div id="taskDisplay"></div>
+    <div>
+      <button id="gameEndedBtn" style="display:none;">Game Ended</button>
+      <button id="closeGameBtn" style="display:none;">Close</button>
     </div>
   </div>
+
   <div class="page-wrapper">
     <div class="container">
       <h2>Available Rooms</h2>
