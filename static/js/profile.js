@@ -3,6 +3,19 @@ if (!token) window.location.href = "../index.html";
 
 let currentProfileId = localStorage.getItem("currentProfileId") || null;
 
+let url = "";
+
+async function BuildURL() {
+  const res = await fetch("../url.json");
+  const config = await res.json();
+
+  //Build the url
+  let port = config.app_port;
+  let demoURL = config.url;
+
+  url = demoURL + port;
+}
+
 const month = new Date().getMonth() + 1;
 let theme = "../css/autumn.css";
 if (month >= 3 && month <= 5) theme = "../css/spring.css";
@@ -39,7 +52,7 @@ async function chooseProfileOnServer(profileId) {
   const numeric = Number(profileId);
   const payloadProfileId = Number.isFinite(numeric) && !Number.isNaN(numeric) ? numeric : profileId;
   try {
-    await fetch("http://192.168.31.239:8080/chooseProfile", {
+    await fetch(url + "/chooseProfile", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ profile_id: payloadProfileId })
@@ -62,7 +75,7 @@ function selectProfileById(id) {
 
 async function getProfiles() {
   try {
-    const res = await fetch("http://192.168.31.239:8080/getAllUsersProflies", {
+    const res = await fetch(url + "/getAllUsersProflies", {
       method: "GET",
       headers: getAuthHeader()
     });
@@ -94,7 +107,7 @@ async function createProfile() {
     return;
   }
   try {
-    const res = await fetch("http://192.168.31.239:8080/createProfile", {
+    const res = await fetch(url + "/createProfile", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ name, description })
@@ -117,7 +130,7 @@ async function deletProfile(profileId) {
   try {
     const numeric = Number(profileId);
     const payload = Number.isFinite(numeric) && !Number.isNaN(numeric) ? numeric : profileId;
-    const res = await fetch("http://192.168.31.239:8080/deletProfile", {
+    const res = await fetch(url + "/deletProfile", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ profile_id: payload })
@@ -139,7 +152,7 @@ async function deletProfile(profileId) {
 async function deletGame(profile_id, game_id) {
   try {
     const payload = { profile_id: Number(profile_id) || profile_id, game_id: Number(game_id) || game_id };
-    const res = await fetch("http://192.168.31.239:8080/deletGame", {
+    const res = await fetch(url + "/deletGame", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify(payload)
@@ -162,7 +175,7 @@ async function submitCreateGameInline(name, profileId) {
   const numeric = Number(profileId);
   const payloadProfileId = Number.isFinite(numeric) && !Number.isNaN(numeric) ? numeric : profileId;
   try {
-    const res = await fetch("http://192.168.31.239:8080/createGame", {
+    const res = await fetch(url + "/createGame", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ name, profile_id: payloadProfileId })
@@ -183,7 +196,7 @@ async function loadGamesForProfile(profileId) {
   try {
     const numeric = Number(profileId);
     const payload = Number.isFinite(numeric) && !Number.isNaN(numeric) ? numeric : profileId;
-    const res = await fetch("http://192.168.31.239:8080/getGames", {
+    const res = await fetch(url + "/getGames", {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({ profile_id: payload })
@@ -304,7 +317,7 @@ getProfiles();
 
 async function loginAndStoreToken(username, password) {
   try {
-    const res = await fetch("http://192.168.31.239:8080/login", {
+    const res = await fetch(url + "/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
@@ -331,3 +344,4 @@ async function loginAndStoreToken(username, password) {
 }
 
 window.loginAndStoreToken = loginAndStoreToken;
+BuildURL();

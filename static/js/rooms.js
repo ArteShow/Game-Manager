@@ -1,7 +1,39 @@
 const token = localStorage.getItem("jwt");
 if (!token) window.location.href = "../index.html";
 
-const baseUrl = "http://192.168.31.239:8079";
+let configCache = null;
+
+async function loadConfig() {
+  if (configCache) return configCache;
+  const res = await fetch("../url.json");
+  if (!res.ok) throw new Error("Failed to load config: " + res.status);
+  const cfg = await res.json();
+  if (!cfg.url) throw new Error("url.json missing 'url' field");
+  configCache = cfg;
+  return cfg;
+}
+
+function joinHostPort(host, port) {
+  host = String(host).replace(/\/+$/, "");
+  if (/:\d+$/.test(host)) return host;
+  return host + ":" + String(port);
+}
+
+async function getAppBaseUrl() {
+  const cfg = await loadConfig();
+  return joinHostPort(cfg.url, cfg.app_port);
+}
+
+async function getHubBaseUrl() {
+  const cfg = await loadConfig();
+  return joinHostPort(cfg.url, cfg.hub_port);
+}
+
+function wsify(url) {
+  if (url.startsWith("https://")) return url.replace(/^https:/, "wss:");
+  if (url.startsWith("http://")) return url.replace(/^http:/, "ws:");
+  return url;
+}
 
 function parseJwt(token) {
   try {
@@ -15,14 +47,15 @@ function parseJwt(token) {
     return {};
   }
 }
+
 const payload = parseJwt(token);
 const userId = payload.userID;
 
 function getSeason(month) {
-  if ([11,0,1].includes(month)) return "winter";
-  if ([2,3,4].includes(month)) return "spring";
-  if ([5,6,7].includes(month)) return "summer";
-  if ([8,9,10].includes(month)) return "autumn";
+  if ([11, 0, 1].includes(month)) return "winter";
+  if ([2, 3, 4].includes(month)) return "spring";
+  if ([5, 6, 7].includes(month)) return "summer";
+  if ([8, 9, 10].includes(month)) return "autumn";
 }
 const month = new Date().getMonth();
 const season = getSeason(month);
@@ -34,7 +67,7 @@ const pendingRooms = {};
 let lastKnownServerRooms = [];
 
 function escapeHtml(s) {
-  return String(s || "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+  return String(s || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
 }
 
 function addPendingRoom(tempId, name) {
@@ -47,16 +80,17 @@ function removePendingRoom(tempId) {
   renderRoomsWithPendingLastKnown();
 }
 
-function attachRoomCardEvents(card, room) {
+async function attachRoomCardEvents(card, room) {
   const statusEl = card.querySelector(".join-status");
   const usersList = card.querySelector(".games-list");
   const currentProfileId = localStorage.getItem("currentProfileId");
 
   async function updateUsersList(userIDs) {
     usersList.innerHTML = "";
+    const appBase = await getAppBaseUrl();
     for (const uID of userIDs) {
       try {
-        const res = await fetch(`http://192.168.31.239:8080/getUsername`, {
+        const res = await fetch(appBase + `/getUsername`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({ userID: uID })
@@ -65,7 +99,6 @@ function attachRoomCardEvents(card, room) {
         const data = await res.json();
         const li = document.createElement("li");
         li.className = "game-item";
-    
         li.innerHTML = `<span class="game-name">${escapeHtml(data.username)}</span>`;
         usersList.appendChild(li);
       } catch (err) {
@@ -78,7 +111,7 @@ function attachRoomCardEvents(card, room) {
     }
   }
 
-  card.querySelector(".join-btn")?.addEventListener("click", () => {
+  card.querySelector(".join-btn")?.addEventListener("click", async () => {
     if (wsConnections[room.room_id]) {
       alert("Already joined!");
       return;
@@ -87,95 +120,96 @@ function attachRoomCardEvents(card, room) {
       alert("No profile selected!");
       return;
     }
+    try {
+      const hubBase = await getHubBaseUrl();
+      const wsBase = wsify(hubBase);
+      const wsUrl = `${wsBase}/ws?roomID=${encodeURIComponent(room.room_id)}&profileID=${encodeURIComponent(currentProfileId)}&token=${encodeURIComponent(token)}`;
+      const ws = new WebSocket(wsUrl);
 
-    const wsUrl = `${baseUrl.replace("http","ws")}/ws?roomID=${encodeURIComponent(room.room_id)}&profileID=${encodeURIComponent(currentProfileId)}&token=${encodeURIComponent(token)}`;
-    const ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        statusEl.textContent = "You joined the room!";
+        ws.send(JSON.stringify({ message: "Hello from client!" }));
+      };
 
-    ws.onopen = () => {
-      statusEl.textContent = "You joined the room!";
-      ws.send(JSON.stringify({ message: "Hello from client!" }));
-    };
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "user_joined") {
+            statusEl.textContent = `User ${data.user} joined. Total: ${data.users.length}`;
+            updateUsersList(data.users);
+          } else if (data.type === "user_left") {
+            statusEl.textContent = `User ${data.user} left. Total: ${data.users.length}`;
+            updateUsersList(data.users);
+          } else if (data.type === "task_chosen") {
+            const taskDisplay = document.getElementById("taskDisplay");
+            if (taskDisplay) {
+              taskDisplay.textContent = `Task: ${data.task}`;
+              taskDisplay.classList.add("glow-task");
+            }
+          } else if (data.type === "game_chosen") {
+            const gameName = data.game?.name || "unknown";
+            localStorage.setItem("currentGame", gameName);
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "user_joined") {
-          statusEl.textContent = `User ${data.user} joined. Total: ${data.users.length}`;
-          console.log(data.users, "this is teh list")
-          updateUsersList(data.users); 
-        }
-        else if (data.type === "user_left") {
-          statusEl.textContent = `User ${data.user} left. Total: ${data.users.length}`;
-          updateUsersList(data.users); 
-        }
-        else if (data.type === "task_chosen") {
-          const taskDisplay = document.getElementById("taskDisplay");
-          if (taskDisplay) {
-            taskDisplay.textContent = `Task: ${data.task}`;
-            taskDisplay.classList.add("glow-task");
+            const gameScreen = document.getElementById("gameScreen");
+            const gameTitle = document.getElementById("gameTitle");
+            const playersList = document.getElementById("playersList");
+            const taskDisplay = document.getElementById("taskDisplay");
+            const gameEndedBtn = document.getElementById("gameEndedBtn");
+            const closeBtn = document.getElementById("closeGameBtn");
+
+            if (gameScreen && gameTitle && playersList && taskDisplay && gameEndedBtn && closeBtn) {
+              document.getElementById("roomsContainer")?.parentElement?.classList.add("hidden");
+
+              gameScreen.style.backgroundImage = 'url("../assest/unnamed.png")';
+              gameScreen.style.backgroundSize = 'cover';
+              gameScreen.style.backgroundPosition = 'center';
+
+              gameTitle.textContent = `Game started: ${gameName}`;
+              gameTitle.style.fontSize = "32px";
+
+              playersList.style.display = "none";
+              statusEl.style.display = "none";
+
+              taskDisplay.textContent = "";
+              taskDisplay.style.fontSize = "36px";
+
+              gameScreen.style.display = "flex";
+
+              gameEndedBtn.style.display = "inline-block";
+              gameEndedBtn.onclick = () => {
+                ws.send(JSON.stringify({ message: "TASK" }));
+                taskDisplay.textContent = "Waiting for task from server...";
+                gameEndedBtn.style.display = "none";
+              };
+
+              closeBtn.style.display = "inline-block";
+              closeBtn.onclick = () => {
+                ws.send(JSON.stringify({ message: "STOP_ROOM" }));
+                if (wsConnections[room.room_id]) {
+                  wsConnections[room.room_id].close();
+                  delete wsConnections[room.room_id];
+                }
+                window.location.reload();
+              };
+            }
           }
+        } catch (e) {
+          console.warn("Non-JSON WS message", event.data);
         }
-        else if (data.type === "game_chosen") {
-          const gameName = data.game?.name || "unknown";
-          localStorage.setItem("currentGame", gameName);
+      };
 
-          const gameScreen = document.getElementById("gameScreen");
-          const gameTitle = document.getElementById("gameTitle");
-          const playersList = document.getElementById("playersList");
-          const taskDisplay = document.getElementById("taskDisplay");
-          const gameEndedBtn = document.getElementById("gameEndedBtn");
-          const closeBtn = document.getElementById("closeGameBtn");
+      ws.onclose = () => {
+        statusEl.textContent = "Disconnected from room.";
+        delete wsConnections[room.room_id];
+      };
 
-          if (gameScreen && gameTitle && playersList && taskDisplay && gameEndedBtn && closeBtn) {
-            document.getElementById("roomsContainer")?.parentElement?.classList.add("hidden");
+      ws.onerror = (err) => console.error(err);
 
-            gameScreen.style.backgroundImage = 'url("../assest/unnamed.png")';
-            gameScreen.style.backgroundSize = 'cover';
-            gameScreen.style.backgroundPosition = 'center';
-
-            gameTitle.textContent = `Game started: ${gameName}`;
-            gameTitle.style.fontSize = "32px";
-
-            playersList.style.display = "none";
-            statusEl.style.display = "none";
-
-            taskDisplay.textContent = "";
-            taskDisplay.style.fontSize = "36px";
-
-            gameScreen.style.display = "flex";
-
-            gameEndedBtn.style.display = "inline-block";
-            gameEndedBtn.onclick = () => {
-              ws.send(JSON.stringify({ message: "TASK" }));
-              taskDisplay.textContent = "Waiting for task from server...";
-              gameEndedBtn.style.display = "none";
-            };
-
-            closeBtn.style.display = "inline-block";
-            closeBtn.onclick = () => {
-              ws.send(JSON.stringify({ message: "STOP_ROOM" }));
-              if (wsConnections[room.room_id]) {
-                wsConnections[room.room_id].close();
-                delete wsConnections[room.room_id];
-              }
-              window.location.reload();
-            };
-          }
-        }
-
-      } catch (e) {
-        console.warn("Non-JSON WS message", event.data);
-      }
-    };
-
-    ws.onclose = () => {
-      statusEl.textContent = "Disconnected from room.";
-      delete wsConnections[room.room_id];
-    };
-
-    ws.onerror = (err) => console.error(err);
-
-    wsConnections[room.room_id] = ws;
+      wsConnections[room.room_id] = ws;
+    } catch (err) {
+      console.error("Failed to join room:", err);
+      alert("Failed to join room: " + (err.message || err));
+    }
   });
 
   card.querySelector(".leave-btn")?.addEventListener("click", () => {
@@ -206,7 +240,8 @@ function attachRoomCardEvents(card, room) {
     e.stopPropagation();
     if (!confirm(`Delete room "${room.room_name}"?`)) return;
     try {
-      const res = await fetch(`${baseUrl}/deleteRoom`, {
+      const hubBase = await getHubBaseUrl();
+      const res = await fetch(`${hubBase}/deleteRoom`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
         body: JSON.stringify({ room_id: room.room_id })
@@ -221,16 +256,18 @@ function attachRoomCardEvents(card, room) {
   });
 }
 
-
-
 async function loadRooms() {
   try {
-    const res = await fetch(`${baseUrl}/getRooms`, { headers: { "Authorization": "Bearer "+token } });
-    if (!res.ok) throw new Error("Failed to fetch rooms");
+    const hubBase = await getHubBaseUrl();
+    const res = await fetch(`${hubBase}/getRooms`, { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) throw new Error("Failed to fetch rooms: " + res.status);
     const rooms = await res.json();
     lastKnownServerRooms = Array.isArray(rooms) ? rooms : [];
-    renderRoomsWithPending(rooms);
-  } catch (err) { console.error(err); renderRoomsWithPending(lastKnownServerRooms || []); }
+    await renderRoomsWithPending(rooms);
+  } catch (err) {
+    console.error(err);
+    await renderRoomsWithPending(lastKnownServerRooms || []);
+  }
 }
 
 async function renderRoomsWithPending(servers = null) {
@@ -250,9 +287,10 @@ async function renderRoomsWithPending(servers = null) {
     card.className = "card profileCard";
     card.setAttribute("data-room-id", room.room_id);
 
+    const appBase = await getAppBaseUrl();
     const usersListItems = await Promise.all((Array.isArray(room.users) ? room.users : []).map(async uID => {
       try {
-        const res = await fetch(`http://192.168.31.239:8080/getUsername`, {
+        const res = await fetch(appBase + `/getUsername`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({ userID: uID })
@@ -281,7 +319,7 @@ async function renderRoomsWithPending(servers = null) {
       <div class="join-status"></div>
     `;
 
-    attachRoomCardEvents(card, room);
+    await attachRoomCardEvents(card, room);
     container.appendChild(card);
   }
 
@@ -305,7 +343,6 @@ async function renderRoomsWithPending(servers = null) {
   });
 }
 
-
 function renderRoomsWithPendingLastKnown() {
   renderRoomsWithPending(lastKnownServerRooms || []);
 }
@@ -318,29 +355,31 @@ async function createRoomWithTimeout(roomName) {
   const timer = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const res = await fetch(`${baseUrl}/createRoom`, {
+    const hubBase = await getHubBaseUrl();
+    const res = await fetch(`${hubBase}/createRoom`, {
       method: "POST",
-      headers: { "Content-Type":"application/json", "Authorization":"Bearer "+token },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
       body: JSON.stringify({ room_name: roomName }),
       signal: controller.signal
     });
     clearTimeout(timer);
-    if (!res.ok) throw new Error(await res.text().catch(()=> "error"));
+    if (!res.ok) throw new Error(await res.text().catch(() => "error"));
     await loadRooms();
     removePendingRoom(tempId);
   } catch (err) {
     clearTimeout(timer);
-    const maxPollMs = 30000, pollInterval=2000, start=Date.now();
-    const poll = setInterval(async ()=>{
+    const maxPollMs = 30000, pollInterval = 2000, start = Date.now();
+    const poll = setInterval(async () => {
       try {
-        const r = await fetch(`${baseUrl}/getRooms`, { headers:{ "Authorization":"Bearer "+token } });
+        const hubBase = await getHubBaseUrl();
+        const r = await fetch(`${hubBase}/getRooms`, { headers: { "Authorization": "Bearer " + token } });
         if (r.ok) {
-          const rooms = await r.json().catch(()=>[]);
-          const found = rooms.find(x=>x.room_name===roomName);
-          if (found) { lastKnownServerRooms=rooms; removePendingRoom(tempId); renderRoomsWithPending(rooms); clearInterval(poll); }
+          const rooms = await r.json().catch(() => []);
+          const found = rooms.find(x => x.room_name === roomName);
+          if (found) { lastKnownServerRooms = rooms; removePendingRoom(tempId); renderRoomsWithPending(rooms); clearInterval(poll); }
         }
-      } catch(e){}
-      if (Date.now()-start>maxPollMs) {
+      } catch (e) { }
+      if (Date.now() - start > maxPollMs) {
         clearInterval(poll);
         const pendingEl = document.querySelector(`[data-room-id="${tempId}"] .join-status`);
         if (pendingEl) pendingEl.textContent = "Creation timed out — try refresh later";
@@ -350,25 +389,31 @@ async function createRoomWithTimeout(roomName) {
 }
 
 document.getElementById("createRoomBtn")?.addEventListener("click", async () => {
-  const name = prompt("Enter room name:"); 
-  if (!name) return; 
+  const name = prompt("Enter room name:");
+  if (!name) return;
   createRoomWithTimeout(name);
 });
-document.getElementById("refreshRoomsBtn")?.addEventListener("click", ()=>loadRooms());
+document.getElementById("refreshRoomsBtn")?.addEventListener("click", () => loadRooms());
 
-(function openAdminWS(){
-  const wsUrl = `${baseUrl.replace("http","ws")}/admin/ws?token=${encodeURIComponent(token)}`;
-  function connect(){
-    const ws = new WebSocket(wsUrl);
-    ws.onopen = ()=>console.log("Admin WS connected");
-    ws.onmessage = ev => {
-      try{ const upd=JSON.parse(ev.data); if (upd.action==="create"||upd.action==="delete") loadRooms(); } 
-      catch(e){console.warn("Invalid admin WS data", ev.data);}
-    };
-    ws.onclose = ()=>{ console.log("Admin WS closed, reconnect in 2s"); setTimeout(connect,2000); };
-    ws.onerror = err=>{ console.error("Admin WS error",err); ws.close(); };
+(async function openAdminWS() {
+  try {
+    const hubBase = await getHubBaseUrl();
+    const wsBase = wsify(hubBase);
+    const wsUrl = `${wsBase}/admin/ws?token=${encodeURIComponent(token)}`;
+    function connect() {
+      const ws = new WebSocket(wsUrl);
+      ws.onopen = () => console.log("Admin WS connected");
+      ws.onmessage = ev => {
+        try { const upd = JSON.parse(ev.data); if (upd.action === "create" || upd.action === "delete") loadRooms(); }
+        catch (e) { console.warn("Invalid admin WS data", ev.data); }
+      };
+      ws.onclose = () => { console.log("Admin WS closed, reconnect in 2s"); setTimeout(connect, 2000); };
+      ws.onerror = err => { console.error("Admin WS error", err); ws.close(); };
+    }
+    connect();
+  } catch (err) {
+    console.error("Failed to open admin WS (config):", err);
   }
-  connect();
 })();
 
 loadRooms();

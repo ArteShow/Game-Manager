@@ -1,4 +1,14 @@
-const API_BASE = "http://192.168.31.239:8080";
+const url = "";
+
+async function BuildURL() {
+    const res = await fetch("../url.json");
+    const config = await res.json();
+
+    const port = config.app_port;
+    const demoURL = config.url;
+
+    url = demoURL + port;
+}
 
 const month = new Date().getMonth() + 1; 
 let theme = "spring.css"; 
@@ -15,7 +25,7 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     const password = document.getElementById("reg-password").value;
 
     try {
-        const res = await fetch(`${API_BASE}/reg`, {
+        const res = await fetch(`${url}/reg`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password }),
@@ -35,7 +45,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     const password = document.getElementById("login-password").value;
 
     try {
-        const res = await fetch(`${API_BASE}/login`, {
+        const res = await fetch(`${url}/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password }),
@@ -57,3 +67,4 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     }
 });
 
+BuildURL();
