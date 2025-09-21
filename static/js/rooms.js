@@ -16,7 +16,7 @@ async function loadConfig() {
 function joinHostPort(host, port) {
   host = String(host).replace(/\/+$/, "");
   if (/:\d+$/.test(host)) return host;
-  return host + ":" + String(port);
+  return host + String(port);
 }
 
 async function getAppBaseUrl() {
