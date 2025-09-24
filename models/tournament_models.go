@@ -9,42 +9,43 @@ import (
 type LiveServer struct {
 	Tournaments []Tournament
 	Mu          sync.Mutex
-	Broadcast chan BroadcastMessage
-	Tournament chan TournamentMessage
-	Clients []Client
+	Broadcast   chan BroadcastMessage
+	Tournament  chan TournamentMessage
+	Clients     []Client
 }
 
-type Client struct{
-	Conn *websocket.Conn
+type Client struct {
+	Conn   *websocket.Conn
 	UserId int64
-	Send chan []byte
+	Send   chan []byte
 }
 
 type Tournament struct {
 	Players []int64
-	Name    string
-	Rounds  []Round
-	Teams []Team
+	Name    string  `json:"name"`
+	Rounds  []Round `json:"rounds"`
+	Teams   []Team
+	Admin   int64
 }
 
-type Team struct{
+type Team struct {
 	Players []int64
-	Points int
+	Points  int
 }
 
 type Round struct {
-	Games TournamentGame
+	Games TournamentGame `json:"games"`
 }
 
 type TournamentGame struct {
-	Name string
+	Name string `json:"game_name"`
 }
 
-type BroadcastMessage struct{
+type BroadcastMessage struct {
 	Message string
 }
 
-type TournamentMessage struct{
-	UserId int64
+type TournamentMessage struct {
+	UserId  int64
 	Message string
 }

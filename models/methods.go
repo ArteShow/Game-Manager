@@ -1,6 +1,13 @@
 package models
 
-import "github.com/gorilla/websocket"
+import (
+	"encoding/json"
+	"io"
+	"net/http"
+	"strconv"
+
+	"github.com/gorilla/websocket"
+)
 
 func (h *HubCache) GetAllProfiles() []ProfileData {
 	h.Mu.Lock()
@@ -58,5 +65,44 @@ func (c *Client) WritePump() {
 		if err := c.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 			break
 		}
+	}
+}
+
+func (lv *LiveServer) AddTournament() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := r.Context().Value("userID").(string)
+		if !ok {
+			http.Error(w, "userID not found", http.StatusUnauthorized)
+			return
+		}
+		intUserId, err := strconv.Atoi(userID)
+		if err != nil {
+			return
+		}
+		defer r.Body.Close()
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read the body", http.StatusInternalServerError)
+			return
+		}
+
+		var Rounds Tournament
+		err = json.Unmarshal(body, &Rounds)
+		if err != nil {
+			http.Error(w, "Failed to encode the body", http.StatusInternalServerError)
+			return
+		}
+
+		NewTournament := Tournament{
+			Teams:   []Team{},
+			Rounds:  Rounds.Rounds,
+			Players: []int64{int64(intUserId)},
+			Admin:   int64(intUserId),
+			Name:    Rounds.Name,
+		}
+
+		lv.Tournaments = append(lv.Tournaments, NewTournament)
+
+		w.WriteHeader(http.StatusAccepted)
 	}
 }

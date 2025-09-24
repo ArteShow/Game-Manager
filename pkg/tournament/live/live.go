@@ -18,15 +18,15 @@ import (
 func NewServer() *models.LiveServer {
 	return &models.LiveServer{
 		Tournaments: []models.Tournament{},
-		Mu: sync.Mutex{},
-		Broadcast: make(chan models.BroadcastMessage),
-		Tournament: make(chan models.TournamentMessage),
-		Clients: []models.Client{},
+		Mu:          sync.Mutex{},
+		Broadcast:   make(chan models.BroadcastMessage),
+		Tournament:  make(chan models.TournamentMessage),
+		Clients:     []models.Client{},
 	}
 }
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r* http.Request) bool{ return true},
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
 type contextKey string
@@ -37,19 +37,19 @@ func JWTMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			DatabasePath, err := getconfig.GetJWTDatabasePath()
-			if err != nil{
+			if err != nil {
 				http.Error(w, "Failed to get the Database path", http.StatusInternalServerError)
-				return 
+				return
 			}
 
 			Database, err := db.OpenDataBase(DatabasePath)
-			if err != nil{
+			if err != nil {
 				http.Error(w, "Failed to open the database", http.StatusInternalServerError)
-				return 
+				return
 			}
 
 			jwtSecret, err := db.GetCurrentJWTKey(Database)
-			if err != nil{
+			if err != nil {
 				http.Error(w, "Failed to get jwt key", http.StatusInternalServerError)
 				return
 			}
@@ -93,14 +93,16 @@ func JWTMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
-func StartLive() error{
+func StartLive() error {
 	LiveServer := NewServer()
 
 	portInt, err := getconfig.GetTournamentPort()
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 	strPort := strconv.Itoa(portInt)
+
+	http.Handle("/add", JWTMiddleware()(LiveServer.AddTournament()))
 
 	ws := &WsServer{Server: *LiveServer}
 	http.Handle("/ws", JWTMiddleware()(ws.StartWs()))
