@@ -26,6 +26,7 @@ type Tournament struct {
 	Rounds  []Round `json:"rounds"`
 	Teams   []Team
 	Admin   int64
+	ID      int64 `json:"id"`
 }
 
 type Team struct {

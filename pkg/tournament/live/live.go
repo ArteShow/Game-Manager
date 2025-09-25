@@ -103,6 +103,7 @@ func StartLive() error {
 	strPort := strconv.Itoa(portInt)
 
 	http.Handle("/add", JWTMiddleware()(LiveServer.AddTournament()))
+	http.Handle("/delet", JWTMiddleware()(LiveServer.DeleteTournament()))
 
 	ws := &WsServer{Server: *LiveServer}
 	http.Handle("/ws", JWTMiddleware()(ws.StartWs()))
