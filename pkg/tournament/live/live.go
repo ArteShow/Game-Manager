@@ -104,6 +104,7 @@ func StartLive() error {
 
 	http.Handle("/add", JWTMiddleware()(LiveServer.AddTournament()))
 	http.Handle("/delet", JWTMiddleware()(LiveServer.DeleteTournament()))
+	http.HandleFunc("/get", LiveServer.GetTournamets)
 
 	ws := &WsServer{Server: *LiveServer}
 	http.Handle("/ws", JWTMiddleware()(ws.StartWs()))

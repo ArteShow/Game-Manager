@@ -175,3 +175,15 @@ func (lv *LiveServer) DeleteTournament() http.HandlerFunc {
 		http.Error(w, "Tournament not found", http.StatusNotFound)
 	}
 }
+
+func (lv *LiveServer) GetTournamets(w http.ResponseWriter, r *http.Request) {
+	Bytes, err := json.Marshal(lv.Tournaments)
+	if err != nil {
+		http.Error(w, "Failed to get Tournaments", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(Bytes)
+	w.WriteHeader(http.StatusAccepted)
+}
