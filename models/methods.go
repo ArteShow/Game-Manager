@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-
-	"github.com/gorilla/websocket"
 )
 
 func (h *HubCache) GetAllProfiles() []ProfileData {
@@ -57,15 +55,22 @@ func (c *Client) ReadPump(server *LiveServer) {
 		server.Mu.Unlock()
 		c.Conn.Close()
 	}()
+	for {
+		_, msg, _ := c.Conn.ReadMessage()
+		var MSG ClientMessage
+		err := json.Unmarshal(msg, &MSG)
+		if err != nil {
+			return
+		}
+
+		if MSG.Message == "JOIN" {
+			//HEAR GO ON
+		}
+	}
 }
 
 func (c *Client) WritePump() {
 	defer c.Conn.Close()
-	for msg := range c.Send {
-		if err := c.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
-			break
-		}
-	}
 }
 
 func (lv *LiveServer) GetMaxTournamentID() int64 {

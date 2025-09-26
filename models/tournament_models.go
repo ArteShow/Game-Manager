@@ -15,9 +15,9 @@ type LiveServer struct {
 }
 
 type Client struct {
-	Conn   *websocket.Conn
-	UserId int64
-	Send   chan []byte
+	Conn          *websocket.Conn
+	UserId        int64
+	ClientMessage chan ClientMessage
 }
 
 type Tournament struct {
@@ -49,4 +49,17 @@ type BroadcastMessage struct {
 type TournamentMessage struct {
 	UserId  int64
 	Message string
+}
+
+type ClientMessage struct {
+	Message string `json:"message"`
+}
+
+type JoinChan struct {
+	UserID  int64
+	Message string
+}
+
+type LeaveChan struct {
+	UserID int64
 }
