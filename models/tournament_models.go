@@ -7,11 +7,12 @@ import (
 )
 
 type LiveServer struct {
-	Tournaments []Tournament
-	Mu          sync.Mutex
-	Broadcast   chan BroadcastMessage
-	Tournament  chan TournamentMessage
-	Clients     []Client
+	Tournaments       []Tournament
+	Mu                sync.Mutex
+	Broadcast         chan BroadcastMessage
+	Join              chan JoinChan
+	Clients           []Client
+	TournamentServers []TournamentServer
 }
 
 type Client struct {
@@ -62,4 +63,11 @@ type JoinChan struct {
 
 type LeaveChan struct {
 	UserID int64
+}
+
+type TournamentServer struct {
+	Join       chan JoinChan
+	Leave      chan LeaveChan
+	BrodCast   chan BroadcastMessage
+	Tournament Tournament
 }

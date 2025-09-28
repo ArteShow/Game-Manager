@@ -20,7 +20,6 @@ func NewServer() *models.LiveServer {
 		Tournaments: []models.Tournament{},
 		Mu:          sync.Mutex{},
 		Broadcast:   make(chan models.BroadcastMessage),
-		Tournament:  make(chan models.TournamentMessage),
 		Clients:     []models.Client{},
 	}
 }

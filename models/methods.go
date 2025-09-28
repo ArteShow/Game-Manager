@@ -64,7 +64,7 @@ func (c *Client) ReadPump(server *LiveServer) {
 		}
 
 		if MSG.Message == "JOIN" {
-			//HEAR GO ON
+
 		}
 	}
 }
@@ -131,6 +131,9 @@ func (lv *LiveServer) AddTournament() http.HandlerFunc {
 			return
 		}
 
+		var NewServer TournamentServer
+		NewServer.NewServer(NewTournament)
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(response)
 		w.WriteHeader(http.StatusAccepted)
@@ -191,4 +194,13 @@ func (lv *LiveServer) GetTournamets(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(Bytes)
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func (ts *TournamentServer) NewServer(Tr Tournament) TournamentServer {
+	return TournamentServer{
+		Join:       make(chan JoinChan),
+		Leave:      make(chan LeaveChan),
+		BrodCast:   make(chan BroadcastMessage),
+		Tournament: Tr,
+	}
 }
