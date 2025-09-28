@@ -47,7 +47,7 @@ func (ws *WsServer) StartWs() http.HandlerFunc {
 		ws.Server.Clients = append(ws.Server.Clients, NewUser)
 		ws.Mu.Unlock()
 
-		go NewUser.WritePump()
+		go NewUser.WritePump(ws.Server)
 		go NewUser.ReadPump(&ws.Server)
 	}
 }

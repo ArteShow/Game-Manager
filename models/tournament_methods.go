@@ -5,43 +5,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/websocket"
 )
-
-func (h *HubCache) GetAllProfiles() []ProfileData {
-	h.Mu.Lock()
-	defer h.Mu.Unlock()
-
-	profiles := make([]ProfileData, 0, len(h.UserProfiles))
-	for _, profile := range h.UserProfiles {
-		profiles = append(profiles, profile)
-	}
-	return profiles
-}
-
-func (r *Room) AddUser(userID int64) {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
-	r.Users = append(r.Users, userID)
-}
-
-func (r *Room) RemoveUser(userID int64) {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
-	for i, id := range r.Users {
-		if id == userID {
-			r.Users = append(r.Users[:i], r.Users[i+1:]...)
-			break
-		}
-	}
-}
-
-func (r *Room) GetUsers() []int64 {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
-	usersCopy := make([]int64, len(r.Users))
-	copy(usersCopy, r.Users)
-	return usersCopy
-}
 
 func (c *Client) ReadPump(server *LiveServer) {
 	defer func() {
@@ -64,13 +30,27 @@ func (c *Client) ReadPump(server *LiveServer) {
 		}
 
 		if MSG.Message == "JOIN" {
-
+			server.Join <- JoinChan{UserID: c.UserId, Message: "JOIN"}
 		}
 	}
 }
 
-func (c *Client) WritePump() {
+func (c *Client) WritePump(lv LiveServer) {
 	defer c.Conn.Close()
+
+	for {
+		select {
+		case msg := <-lv.Broadcast:
+			if msg.Message == "JOIN" {
+				bytes, err := json.Marshal(msg)
+				if err != nil {
+					return
+				}
+
+				c.Conn.WriteMessage(websocket.TextMessage, bytes)
+			}
+		}
+	}
 }
 
 func (lv *LiveServer) GetMaxTournamentID() int64 {
@@ -132,7 +112,8 @@ func (lv *LiveServer) AddTournament() http.HandlerFunc {
 		}
 
 		var NewServer TournamentServer
-		NewServer.NewServer(NewTournament)
+		NewServer.NewServer(NewTournament, TournamentID)
+		go NewServer.StartTournament(*lv)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(response)
@@ -152,6 +133,7 @@ func (lv *LiveServer) DeleteTournament() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
+
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Failed to read the body", http.StatusInternalServerError)
@@ -180,6 +162,16 @@ func (lv *LiveServer) DeleteTournament() http.HandlerFunc {
 			}
 		}
 
+		for _, ts := range lv.TournamentServers {
+			if ts.ID == req.ID {
+				if ts.Tournament.Admin != int64(intUserId) {
+					return
+				} else {
+					ts.Stop <- "STOP"
+				}
+			}
+		}
+
 		http.Error(w, "Tournament not found", http.StatusNotFound)
 	}
 }
@@ -196,11 +188,50 @@ func (lv *LiveServer) GetTournamets(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (ts *TournamentServer) NewServer(Tr Tournament) TournamentServer {
+func (ts *TournamentServer) NewServer(Tr Tournament, id int64) TournamentServer {
 	return TournamentServer{
 		Join:       make(chan JoinChan),
 		Leave:      make(chan LeaveChan),
 		BrodCast:   make(chan BroadcastMessage),
+		Stop:       make(chan string),
 		Tournament: Tr,
+		ID:         id,
 	}
+}
+
+func (Ts *TournamentServer) StartTournament(lv LiveServer) {
+	go func() {
+		for {
+			select {
+			case msg := <-Ts.Join:
+				if msg.Message == "JOIN" {
+					Ts.Mu.Lock()
+					Ts.Tournament.Players = append(Ts.Tournament.Players, msg.UserID)
+					Ts.Mu.Unlock()
+
+					lv.Broadcast <- BroadcastMessage{Message: "JOIN", UserId: msg.UserID}
+				}
+			case msg := <-Ts.Stop:
+				if msg == "STOP" {
+					for i, client := range lv.Clients {
+						for _, id := range Ts.Tournament.Players {
+							if id == client.UserId {
+								lv.Mu.Lock()
+								client.Conn.Close()
+								lv.Clients = append(lv.Clients[:i], lv.Clients[i+1:]...)
+								lv.Mu.Unlock()
+							}
+						}
+					}
+					for i, ts := range lv.TournamentServers {
+						if ts.ID == Ts.ID {
+							lv.Mu.Lock()
+							lv.TournamentServers = append(lv.TournamentServers[:i], lv.TournamentServers[i+1:]...)
+							lv.Mu.Unlock()
+						}
+					}
+				}
+			}
+		}
+	}()
 }

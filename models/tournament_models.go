@@ -44,7 +44,8 @@ type TournamentGame struct {
 }
 
 type BroadcastMessage struct {
-	Message string
+	Message string `json:"message"`
+	UserId  int64  `json:"id"`
 }
 
 type TournamentMessage struct {
@@ -69,5 +70,8 @@ type TournamentServer struct {
 	Join       chan JoinChan
 	Leave      chan LeaveChan
 	BrodCast   chan BroadcastMessage
+	Stop       chan string
 	Tournament Tournament
+	ID         int64
+	Mu         sync.Mutex
 }
