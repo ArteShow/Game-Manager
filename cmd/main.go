@@ -7,7 +7,7 @@ import (
 	"github.com/ArteShow/Game-Manager/internal"
 	"github.com/ArteShow/Game-Manager/pkg/hub"
 	"github.com/ArteShow/Game-Manager/pkg/setup"
-	"github.com/ArteShow/Game-Manager/pkg/tournament/live"
+	"github.com/ArteShow/Game-Manager/pkg/tournament"
 )
 
 func main() {
@@ -45,10 +45,10 @@ func main() {
 		}
 	}()
 
-	go func ()  {
-		log.Println("Loading Tournament Server")
-		err := live.StartLive()
-		if err != nil{
+	go func() {
+		log.Println("Loading Tournament Http Server")
+		err := tournament.StartTournamentHttp()
+		if err != nil {
 			log.Fatal(err)
 			panic(err)
 		}
