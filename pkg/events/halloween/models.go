@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Main Cache where all Tournament data is storted
+// Main Cache where all Tournament data is stored
 type Cache struct {
 	Tournaments []Tournament
 	Mu          sync.Mutex
@@ -27,16 +27,23 @@ type Client struct {
 	Id   int64
 }
 
-// nesecery structures
+// necessary structures
 type Team struct {
-	Players []int64
-	Name    string
-	Id      int64
+	Players       []int64
+	Name          string
+	Id            int64
+	PumpkinHealth int
 }
 
 type Round struct {
-	Games string
-	Id    int64
+	Game Game
+	Id   int64
+}
+
+// Power is how much the win will deal damage to another pumpkin
+type Game struct {
+	Name  string
+	Power int
 }
 
 // Messages Types
@@ -52,5 +59,12 @@ type LeaveMessage struct {
 
 type BroadcastMassage struct {
 	Message string
-	Typer   string
+	Type    string
+}
+
+// Halloween Server Cache
+type HalloweenServer struct {
+	Join      chan JoinMessage
+	Leave     chan LeaveMessage
+	Broadcast chan BroadcastMassage
 }
