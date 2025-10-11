@@ -2,7 +2,7 @@ package halloween
 
 import (
 	"encoding/json"
-	"io"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -13,28 +13,6 @@ var upgrade = websocket.Upgrader{
 }
 
 func HalloweenWebsocketServer(w http.ResponseWriter, r *http.Request) {
-	//Get UserId from context
-	userId := r.Context().Value("userID").(int64)
-
-	//Get HWGame Id from the request
-	type ClientRequest struct {
-		ID int64 `json:"id"`
-	}
-	var req ClientRequest
-
-	body, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		http.Error(w, "Failed to read the body", http.StatusInternalServerError)
-		return
-	}
-
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		http.Error(w, "Failed to unmarshal the body", http.StatusInternalServerError)
-		return
-	}
-
 	//Save connection
 	conn, err := upgrade.Upgrade(w, r, nil)
 	if err != nil {
@@ -42,25 +20,52 @@ func HalloweenWebsocketServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, hw := range cache.HalloweenGame {
-		for _, cl := range hw.Players {
-			if cl.Id == req.ID {
-				cache.Mu.Lock()
-				cl.Conn = *conn
-				cache.Mu.Unlock()
+	//Start Client Functions
+	go ReadPump(conn)
+	go WritePump(conn)
+}
+
+func ReadPump(conn *websocket.Conn) {
+	for {
+		//Listen for Message
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+
+		type MessageType struct {
+			Type string `json:"type"`
+		}
+		var MType MessageType
+
+		err = json.Unmarshal(message, &MType)
+		if err != nil {
+			log.Println("Failed to read the message")
+			return
+		}
+
+		//If type is JOIN
+		if MType.Type == "JOIN" {
+			var JoinMessage JoinMessage
+			err := json.Unmarshal(message, &JoinMessage)
+			if err != nil {
+				log.Println("Failed to read the message 2")
+			}
+
+			//Look for the right hw server and send the data in the right chanel
+			for _, hw := range cache.HalloweenGame {
+				if hw.Id == JoinMessage.HalloweenGameId {
+					for _, hws := range cache.HalloweenServers {
+						if hws.Id == hw.Id {
+							hws.Join <- JoinMessage
+						}
+					}
+				}
 			}
 		}
 	}
-
-	//Start Client Functions
-	go ReadPump(userId, req.ID)
-	go WritePump(userId, req.ID)
 }
 
-func ReadPump(userID, HalloweenGameId int64) {
-	//Hear Wait for user Messages
-}
-
-func WritePump(userID, HalloweenGameId int64) {
+func WritePump(conn *websocket.Conn) {
 	//Hear wait for server messages
 }

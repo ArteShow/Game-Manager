@@ -1,5 +1,6 @@
 package halloween
 
+// Get max id of hw
 func (c *Cache) GetMaxId() int64 {
 	var max int64
 	for _, t := range c.HalloweenGame {
@@ -11,6 +12,7 @@ func (c *Cache) GetMaxId() int64 {
 	return max
 }
 
+// Add hw to the cache
 func (c *Cache) AddHalloweenGame(client Client, Name string) int64 {
 	c.Mu.Lock()
 
@@ -20,13 +22,17 @@ func (c *Cache) AddHalloweenGame(client Client, Name string) int64 {
 		Id:      c.GetMaxId(),
 		Teams:   []Team{},
 		Rounds:  []Round{},
-		Players: []Client{client},
+		Players: []Client{},
+		Admin:   client.Id,
 	})
 	c.Mu.Unlock()
+
+	go StartHalloweenGameServer(MaxId)
 
 	return MaxId
 }
 
+// delete hw from cache
 func (c *Cache) DeleteHalloweenGame(id int64) {
 	c.Mu.Lock()
 	for i, t := range c.HalloweenGame {
@@ -37,6 +43,7 @@ func (c *Cache) DeleteHalloweenGame(id int64) {
 	c.Mu.Unlock()
 }
 
+// get all hw from cache
 func (c *Cache) GetHalloweenGames() []HalloweenGame {
 	var Halloweengames []HalloweenGame
 	for _, h := range c.HalloweenGame {

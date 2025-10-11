@@ -8,8 +8,9 @@ import (
 
 // Main Cache where all Tournament data is stored
 type Cache struct {
-	HalloweenGame []HalloweenGame
-	Mu            sync.Mutex
+	HalloweenGame    []HalloweenGame
+	Mu               sync.Mutex
+	HalloweenServers []HalloweenServer
 }
 
 // Tournament Server cache
@@ -49,8 +50,10 @@ type Game struct {
 
 // Messages Types
 type JoinMessage struct {
-	UserID  int64
-	Message string
+	UserID          int64  `json:"userId"`
+	Message         string `json:"message"`
+	Conn            *websocket.Conn
+	HalloweenGameId int64 `json:"hw_id"`
 }
 
 type LeaveMessage struct {
@@ -68,4 +71,5 @@ type HalloweenServer struct {
 	Join      chan JoinMessage
 	Leave     chan LeaveMessage
 	Broadcast chan BroadcastMassage
+	Id        int64
 }
