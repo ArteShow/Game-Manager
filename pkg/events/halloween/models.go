@@ -1,4 +1,4 @@
-package tournament
+package halloween
 
 import (
 	"sync"

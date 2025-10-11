@@ -5,9 +5,9 @@ import (
 
 	"github.com/ArteShow/Game-Manager/application"
 	"github.com/ArteShow/Game-Manager/internal"
+	"github.com/ArteShow/Game-Manager/pkg/events/halloween"
 	"github.com/ArteShow/Game-Manager/pkg/hub"
 	"github.com/ArteShow/Game-Manager/pkg/setup"
-	"github.com/ArteShow/Game-Manager/pkg/tournament"
 )
 
 func main() {
@@ -47,7 +47,7 @@ func main() {
 
 	go func() {
 		log.Println("Loading Tournament Http Server")
-		err := tournament.StartTournamentHttp()
+		err := halloween.StartTournamentHttp()
 		if err != nil {
 			log.Fatal(err)
 			panic(err)
