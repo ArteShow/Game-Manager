@@ -13,6 +13,8 @@ var upgrade = websocket.Upgrader{
 }
 
 func HalloweenWebsocketServer(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(int64)
+
 	//Save connection
 	conn, err := upgrade.Upgrade(w, r, nil)
 	if err != nil {
@@ -22,7 +24,7 @@ func HalloweenWebsocketServer(w http.ResponseWriter, r *http.Request) {
 
 	//Start Client Functions
 	go ReadPump(conn)
-	go WritePump(conn)
+	go WritePump(conn, userID)
 }
 
 func ReadPump(conn *websocket.Conn) {
@@ -66,6 +68,6 @@ func ReadPump(conn *websocket.Conn) {
 	}
 }
 
-func WritePump(conn *websocket.Conn) {
+func WritePump(conn *websocket.Conn, userID int64) {
 	//Hear wait for server messages
 }

@@ -117,7 +117,7 @@ func StartTournamentHttp() error {
 	strport := strconv.Itoa(port)
 
 	//endpoints
-	http.HandleFunc("/hw/ws", HalloweenWebsocketServer)
+	http.Handle("/hw/ws", UserIDMiddleware(http.HandlerFunc(HalloweenWebsocketServer)))
 	http.Handle("/hw/add", UserIDMiddleware(http.HandlerFunc(CreateHalloweenGame)))
 	return http.ListenAndServe(":"+strport, nil)
 }
