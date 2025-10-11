@@ -11,8 +11,10 @@ func (c *Cache) GetMaxId() int64 {
 	return max
 }
 
-func (c *Cache) AddHalloweenGame(client Client, Name string) {
+func (c *Cache) AddHalloweenGame(client Client, Name string) int64 {
 	c.Mu.Lock()
+
+	MaxId := c.GetMaxId()
 	c.HalloweenGame = append(c.HalloweenGame, HalloweenGame{
 		Name:    Name,
 		Id:      c.GetMaxId(),
@@ -21,6 +23,8 @@ func (c *Cache) AddHalloweenGame(client Client, Name string) {
 		Players: []Client{client},
 	})
 	c.Mu.Unlock()
+
+	return MaxId
 }
 
 func (c *Cache) DeleteHalloweenGame(id int64) {

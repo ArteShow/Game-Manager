@@ -2,9 +2,12 @@ package halloween
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/ArteShow/Game-Manager/pkg/db"
 	GetConfiguration "github.com/ArteShow/Game-Manager/pkg/getConfig"
@@ -65,29 +68,52 @@ func UserIDMiddleware(next http.Handler) http.Handler {
 }
 
 func CreateHalloweenGame(w http.ResponseWriter, r *http.Request) {
-	/*
-		//Get user id
-		userId := r.Context().Value("userID").(int64)
+	//Get user id
+	userId := r.Context().Value("userID").(int64)
 
-		//Get Halloween Game Name
-		type CreateRequest struct{
-			Name string `json:"name"`
-		}
-		var req CreateRequest
+	//Get Halloween Game Name
+	type CreateRequest struct {
+		Name string `json:"name"`
+	}
+	var req CreateRequest
 
-		defer r.Body.Close()
+	defer r.Body.Close()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read the body", http.StatusInternalServerError)
+		return
+	}
 
-		err := json.Unmarshal(r.Body, &req)
-		cache.AddHalloweenGame(Client{Id: int64(userId)}, )*/
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal the body", http.StatusInternalServerError)
+		return
+	}
+
+	id := cache.AddHalloweenGame(Client{Id: int64(userId)}, req.Name)
+	bytes, err := json.Marshal(id)
+	if err != nil {
+		http.Error(w, "Failed to marshal to bytes", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write(bytes)
 }
 
 // Start http Server
 func StartTournamentHttp() error {
+	cache = Cache{
+		Mu:            sync.Mutex{},
+		HalloweenGame: []HalloweenGame{},
+	}
+
 	port, err := GetConfiguration.GetTournamentPort()
 	if err != nil {
 		return err
 	}
 	strport := strconv.Itoa(port)
 
+	http.Handle("/hw/add", UserIDMiddleware(http.HandlerFunc(CreateHalloweenGame)))
 	return http.ListenAndServe(":"+strport, nil)
 }
