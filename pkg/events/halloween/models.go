@@ -8,17 +8,18 @@ import (
 
 // Main Cache where all Tournament data is stored
 type Cache struct {
-	Tournaments []Tournament
-	Mu          sync.Mutex
+	HalloweenGame []HalloweenGame
+	Mu            sync.Mutex
 }
 
 // Tournament Server cache
-type Tournament struct {
+type HalloweenGame struct {
 	Name    string
 	Id      int64
 	Teams   []Team
 	Rounds  []Round
 	Players []Client
+	Admin   int64
 }
 
 // Client struct with the connection

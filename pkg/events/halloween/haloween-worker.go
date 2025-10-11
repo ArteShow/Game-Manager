@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
-	getconfig "github.com/ArteShow/Game-Manager/pkg/getConfig"
+	GetConfiguration "github.com/ArteShow/Game-Manager/pkg/getConfig"
 )
 
 // Start http Server
 func StartTournamentHttp() error {
-	port, err := getconfig.GetTournamentPort()
+	port, err := GetConfiguration.GetTournamentPort()
 	if err != nil {
 		return err
 	}
