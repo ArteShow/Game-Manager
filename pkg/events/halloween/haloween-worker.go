@@ -90,6 +90,7 @@ func CreateHalloweenGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Return New Halloween Game Id
 	id := cache.AddHalloweenGame(Client{Id: int64(userId)}, req.Name)
 	bytes, err := json.Marshal(id)
 	if err != nil {
@@ -103,6 +104,7 @@ func CreateHalloweenGame(w http.ResponseWriter, r *http.Request) {
 
 // Start http Server
 func StartTournamentHttp() error {
+	//Initialize new cache
 	cache = Cache{
 		Mu:            sync.Mutex{},
 		HalloweenGame: []HalloweenGame{},
@@ -114,6 +116,8 @@ func StartTournamentHttp() error {
 	}
 	strport := strconv.Itoa(port)
 
+	//endpoints
+	http.HandleFunc("/hw/ws", HalloweenWebsocketServer)
 	http.Handle("/hw/add", UserIDMiddleware(http.HandlerFunc(CreateHalloweenGame)))
 	return http.ListenAndServe(":"+strport, nil)
 }

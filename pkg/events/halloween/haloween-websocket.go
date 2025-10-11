@@ -13,8 +13,10 @@ var upgrade = websocket.Upgrader{
 }
 
 func HalloweenWebsocketServer(w http.ResponseWriter, r *http.Request) {
+	//Get UserId from context
 	userId := r.Context().Value("userID").(int64)
 
+	//Get HWGame Id from the request
 	type ClientRequest struct {
 		ID int64 `json:"id"`
 	}
@@ -33,6 +35,7 @@ func HalloweenWebsocketServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Save connection
 	conn, err := upgrade.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, "Failed to upgrade to websocket", http.StatusBadRequest)
@@ -49,14 +52,15 @@ func HalloweenWebsocketServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	//Start Client Functions
 	go ReadPump(userId, req.ID)
 	go WritePump(userId, req.ID)
 }
 
 func ReadPump(userID, HalloweenGameId int64) {
-
+	//Hear Wait for user Messages
 }
 
 func WritePump(userID, HalloweenGameId int64) {
-
+	//Hear wait for server messages
 }
