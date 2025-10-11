@@ -31,11 +31,11 @@ func GetJWTKey() (error, string) {
 	return nil, key
 }
 
-func CheckUserCredentials(username, password string, Databse *sql.DB) (bool, error) {
+func CheckUserCredentials(username, password string, Database *sql.DB) (bool, error) {
 	query := `SELECT COUNT(*) FROM users WHERE username = ? AND password = ?`
 
 	var count int
-	err := Databse.QueryRow(query, username, password).Scan(&count)
+	err := Database.QueryRow(query, username, password).Scan(&count)
 	if err != nil {
 		log.Println("Error checking user credentials:", err)
 		return false, err
