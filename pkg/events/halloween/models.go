@@ -38,3 +38,19 @@ type Round struct {
 	Games string
 	Id    int64
 }
+
+// Messages Types
+type JoinMessage struct {
+	UserID  int64
+	Message string
+}
+
+type LeaveMessage struct {
+	UserId  int64
+	Message string
+}
+
+type BroadcastMassage struct {
+	Message string
+	Typer   string
+}
