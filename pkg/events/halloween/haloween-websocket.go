@@ -69,5 +69,27 @@ func ReadPump(conn *websocket.Conn) {
 }
 
 func WritePump(conn *websocket.Conn, userID int64) {
-	//Hear wait for server messages
+	//Look for the game
+	for {
+		for _, hw := range cache.HalloweenGame {
+			for _, cl := range hw.Players {
+				if cl.Id == userID {
+					//Look for the Halloween Server
+					for _, hws := range cache.HalloweenServers {
+						if hws.Id == hw.Id {
+							//Hear check for server events
+							select {
+							case msg := <-hws.Broadcast:
+								err := cl.Conn.WriteJSON(msg)
+								if err != nil {
+									log.Println("Failed to send the broadcast message")
+									return
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }

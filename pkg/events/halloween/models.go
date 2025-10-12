@@ -62,8 +62,8 @@ type LeaveMessage struct {
 }
 
 type BroadcastMassage struct {
-	Message string
-	Type    string
+	Message string `json:"message"`
+	Type    string `json:"type"`
 }
 
 // Halloween Server Cache

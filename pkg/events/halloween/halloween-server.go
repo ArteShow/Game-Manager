@@ -1,5 +1,7 @@
 package halloween
 
+import "strconv"
+
 func StartHalloweenGameServer(hwGameId int64) {
 	//Initialize HWServerCache
 	HWServerCache := HalloweenServer{
@@ -20,7 +22,15 @@ func StartHalloweenGameServer(hwGameId int64) {
 				case msg := <-HWServerCache.Join:
 					if msg.Message == "JOIN" {
 						hw.Players = append(hw.Players, Client{Conn: *msg.Conn, Id: msg.UserID})
-						//Add Broadcast to all users
+
+						//Broadcasting all other users
+						stringID := strconv.Itoa(int(msg.UserID))
+						Broadcastmessage := BroadcastMassage{
+							Message: stringID,
+							Type:    "JOIN",
+						}
+
+						HWServerCache.Broadcast <- Broadcastmessage
 					}
 				}
 			}
