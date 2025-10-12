@@ -66,10 +66,16 @@ type BroadcastMassage struct {
 	Type    string `json:"type"`
 }
 
+type StopMessage struct {
+	adminId int64
+	conn    *websocket.Conn
+}
+
 // Halloween Server Cache
 type HalloweenServer struct {
 	Join      chan JoinMessage
 	Leave     chan LeaveMessage
 	Broadcast chan BroadcastMassage
+	Stop      chan StopMessage
 	Id        int64
 }

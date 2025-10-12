@@ -12,6 +12,7 @@ import (
 	"github.com/ArteShow/Game-Manager/pkg/db"
 	GetConfiguration "github.com/ArteShow/Game-Manager/pkg/getConfig"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/websocket"
 )
 
 var cache Cache
@@ -67,6 +68,7 @@ func UserIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// Create new hw server
 func CreateHalloweenGame(w http.ResponseWriter, r *http.Request) {
 	//Get user id
 	userId := r.Context().Value("userID").(int64)
@@ -102,6 +104,61 @@ func CreateHalloweenGame(w http.ResponseWriter, r *http.Request) {
 	w.Write(bytes)
 }
 
+// stop and delete hw server
+func DeleteServer(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(int64)
+
+	type Request struct {
+		HwsID int64 `json:"id"`
+	}
+	var req Request
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, "Failed to read the body", http.StatusInternalServerError)
+		return
+	}
+
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal the body", http.StatusInternalServerError)
+		return
+	}
+
+	var connection *websocket.Conn
+	for _, hw := range cache.HalloweenGame {
+		for _, cl := range hw.Players {
+			if cl.Id == userID {
+				connection = &cl.Conn
+			}
+		}
+	}
+
+	for i, hws := range cache.HalloweenServers {
+		if hws.Id == req.HwsID {
+			stopMessage := StopMessage{
+				adminId: userID,
+				conn:    connection,
+			}
+
+			hws.Stop <- stopMessage
+
+			cache.HalloweenServers = append(cache.HalloweenServers[:i], cache.HalloweenServers[i+1:]...)
+			break
+		}
+	}
+
+	for i, hw := range cache.HalloweenGame {
+		if hw.Id == req.HwsID {
+			cache.HalloweenGame = append(cache.HalloweenGame[i:], cache.HalloweenGame[i+1:]...)
+			break
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // Start http Server
 func StartTournamentHttp() error {
 	//Initialize new cache
@@ -117,6 +174,7 @@ func StartTournamentHttp() error {
 	strport := strconv.Itoa(port)
 
 	//endpoints
+	http.Handle("/hw/delete", UserIDMiddleware(http.HandlerFunc(DeleteServer)))
 	http.Handle("/hw/ws", UserIDMiddleware(http.HandlerFunc(HalloweenWebsocketServer)))
 	http.Handle("/hw/add", UserIDMiddleware(http.HandlerFunc(CreateHalloweenGame)))
 	return http.ListenAndServe(":"+strport, nil)

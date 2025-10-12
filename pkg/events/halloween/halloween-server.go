@@ -1,6 +1,10 @@
 package halloween
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/gorilla/websocket"
+)
 
 func StartHalloweenGameServer(hwGameId int64) {
 	//Initialize HWServerCache
@@ -32,7 +36,9 @@ func StartHalloweenGameServer(hwGameId int64) {
 						}
 
 						if counter < 1 {
+							cache.Mu.Lock()
 							hw.Players = append(hw.Players, Client{Conn: *msg.Conn, Id: msg.UserID})
+							cache.Mu.Unlock()
 						} else {
 							msg.Conn.WriteJSON(BroadcastMassage{Message: "You are already in a game", Type: "ERROR"})
 						}
@@ -45,6 +51,17 @@ func StartHalloweenGameServer(hwGameId int64) {
 						}
 
 						HWServerCache.Broadcast <- Broadcastmessage
+					}
+
+				case msg := <-HWServerCache.Stop:
+					for _, hw := range cache.HalloweenGame {
+						if HWServerCache.Id == hw.Id {
+							if hw.Admin == msg.adminId {
+								break
+							} else {
+								msg.conn.WriteMessage(websocket.TextMessage, []byte("You are not an admin"))
+							}
+						}
 					}
 				}
 			}
