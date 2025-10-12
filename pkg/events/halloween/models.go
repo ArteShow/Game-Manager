@@ -67,8 +67,9 @@ type BroadcastMassage struct {
 }
 
 type StopMessage struct {
-	adminId int64
-	conn    *websocket.Conn
+	AdminID int64
+	Conn    *websocket.Conn
+	Type    string
 }
 
 // Halloween Server Cache

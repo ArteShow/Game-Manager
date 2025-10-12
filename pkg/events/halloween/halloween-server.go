@@ -52,14 +52,17 @@ func StartHalloweenGameServer(hwGameId int64) {
 
 						HWServerCache.Broadcast <- Broadcastmessage
 					}
-
+				//If stop then stop lol
 				case msg := <-HWServerCache.Stop:
-					for _, hw := range cache.HalloweenGame {
-						if HWServerCache.Id == hw.Id {
-							if hw.Admin == msg.adminId {
-								break
-							} else {
-								msg.conn.WriteMessage(websocket.TextMessage, []byte("You are not an admin"))
+					if msg.Type == "STOP" {
+						for _, hw := range cache.HalloweenGame {
+							if HWServerCache.Id == hw.Id {
+								if hw.Admin == msg.AdminID {
+									break
+								} else {
+									//write error as string message
+									msg.Conn.WriteMessage(websocket.TextMessage, []byte("You are not an admin"))
+								}
 							}
 						}
 					}

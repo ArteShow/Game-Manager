@@ -138,8 +138,9 @@ func DeleteServer(w http.ResponseWriter, r *http.Request) {
 	for i, hws := range cache.HalloweenServers {
 		if hws.Id == req.HwsID {
 			stopMessage := StopMessage{
-				adminId: userID,
-				conn:    connection,
+				AdminID: userID,
+				Conn:    connection,
+				Type:    "STOP",
 			}
 
 			hws.Stop <- stopMessage
