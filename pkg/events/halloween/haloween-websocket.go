@@ -32,7 +32,7 @@ func ReadPump(conn *websocket.Conn) {
 		//Listen for Message
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			break
+			return
 		}
 
 		type MessageType struct {
@@ -45,7 +45,7 @@ func ReadPump(conn *websocket.Conn) {
 			log.Println("Failed to read the message")
 			return
 		}
-
+		//Hear Messages from the user
 		//If type is JOIN
 		if MType.Type == "JOIN" {
 			var JoinMessage JoinMessage

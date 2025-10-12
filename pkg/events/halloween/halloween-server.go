@@ -21,7 +21,21 @@ func StartHalloweenGameServer(hwGameId int64) {
 				select {
 				case msg := <-HWServerCache.Join:
 					if msg.Message == "JOIN" {
-						hw.Players = append(hw.Players, Client{Conn: *msg.Conn, Id: msg.UserID})
+						//Check if user is already in a game
+						var counter int
+						for _, HW := range cache.HalloweenGame {
+							for _, cl := range HW.Players {
+								if cl.Id == msg.UserID {
+									counter++
+								}
+							}
+						}
+
+						if counter < 1 {
+							hw.Players = append(hw.Players, Client{Conn: *msg.Conn, Id: msg.UserID})
+						} else {
+							msg.Conn.WriteJSON(BroadcastMassage{Message: "You are already in a game", Type: "ERROR"})
+						}
 
 						//Broadcasting all other users
 						stringID := strconv.Itoa(int(msg.UserID))
