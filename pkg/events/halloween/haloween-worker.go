@@ -160,6 +160,18 @@ func DeleteServer(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// Get All HalloweenGames
+func GetHalloweenGames(w http.ResponseWriter, r *http.Request) {
+	//encode the list and send it to the user
+	err := json.NewEncoder(w).Encode(cache.HalloweenGame)
+	if err != nil {
+		http.Error(w, "Failed to encode the list", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
 // Start http Server
 func StartTournamentHttp() error {
 	//Initialize new cache
@@ -178,5 +190,6 @@ func StartTournamentHttp() error {
 	http.Handle("/hw/delete", UserIDMiddleware(http.HandlerFunc(DeleteServer)))
 	http.Handle("/hw/ws", UserIDMiddleware(http.HandlerFunc(HalloweenWebsocketServer)))
 	http.Handle("/hw/add", UserIDMiddleware(http.HandlerFunc(CreateHalloweenGame)))
+	http.HandleFunc("/hw/get", GetHalloweenGames)
 	return http.ListenAndServe(":"+strport, nil)
 }

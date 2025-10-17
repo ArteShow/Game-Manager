@@ -1,6 +1,7 @@
 package halloween
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/gorilla/websocket"
@@ -61,7 +62,11 @@ func StartHalloweenGameServer(hwGameId int64) {
 									break
 								} else {
 									//write error as string message
-									msg.Conn.WriteMessage(websocket.TextMessage, []byte("You are not an admin"))
+									err2 := msg.Conn.WriteMessage(websocket.TextMessage, []byte("You are not an admin"))
+									if err2 != nil {
+										log.Println(err2)
+										return
+									}
 								}
 							}
 						}

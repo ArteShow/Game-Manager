@@ -15,37 +15,37 @@ type Cache struct {
 
 // Tournament Server cache
 type HalloweenGame struct {
-	Name    string
-	Id      int64
-	Teams   []Team
-	Rounds  []Round
-	Players []Client
-	Admin   int64
+	Name    string   `json:"name"`
+	Id      int64    `json:"id"`
+	Teams   []Team   `json:"teams"`
+	Rounds  []Round  `json:"rounds"`
+	Players []Client `json:"players"`
+	Admin   int64    `json:"admin"`
 }
 
 // Client struct with the connection
 type Client struct {
 	Conn websocket.Conn
-	Id   int64
+	Id   int64 `json:"id"`
 }
 
 // necessary structures
 type Team struct {
-	Players       []int64
-	Name          string
-	Id            int64
-	PumpkinHealth int
+	Players       []int64 `json:"players"`
+	Name          string  `json:"name"`
+	Id            int64   `json:"id"`
+	PumpkinHealth int     `json:"health"`
 }
 
 type Round struct {
-	Game Game
-	Id   int64
+	Game Game  `json:"game"`
+	Id   int64 `json:"id"`
 }
 
 // Power is how much the win will deal damage to another pumpkin
 type Game struct {
-	Name  string
-	Power int
+	Name  string `json:"name"`
+	Power int    `json:"power"`
 }
 
 // Messages Types
