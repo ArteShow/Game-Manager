@@ -1,8 +1,8 @@
 {
-    "app_port": 8082,
+    "app_port": 8080,
     "internal_port": 8081,
-    "hub_port": 8079,
-    "tournament_port": 8078,
+    "hub_port": 8080,
+    "tournament_port": 8080,
 
     "user_database_path": "database/user.db",
     "jwt_database_path": "database/jwt.db",

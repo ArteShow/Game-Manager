@@ -19,8 +19,8 @@ func StartHalloweenGameServer(hwGameId int64) {
 	cache.HalloweenServers = append(cache.HalloweenServers, HWServerCache)
 
 	//Start the infinite loop
-	for _, hw := range cache.HalloweenGame {
-		if hw.Id == hwGameId {
+	for _, HalloweenGame := range cache.HalloweenGame {
+		if HalloweenGame.Id == hwGameId {
 			for {
 				//Check for messages in the channels
 				select {
@@ -38,7 +38,7 @@ func StartHalloweenGameServer(hwGameId int64) {
 
 						if counter < 1 {
 							cache.Mu.Lock()
-							hw.Players = append(hw.Players, Client{Conn: *msg.Conn, Id: msg.UserID})
+							HalloweenGame.Players = append(HalloweenGame.Players, Client{Conn: *msg.Conn, Id: msg.UserID})
 							cache.Mu.Unlock()
 						} else {
 							msg.Conn.WriteJSON(BroadcastMassage{Message: "You are already in a game", Type: "ERROR"})
@@ -56,9 +56,19 @@ func StartHalloweenGameServer(hwGameId int64) {
 				//If stop then stop lol
 				case msg := <-HWServerCache.Stop:
 					if msg.Type == "STOP" {
-						for _, hw := range cache.HalloweenGame {
+						for i, hw := range cache.HalloweenGame {
 							if HWServerCache.Id == hw.Id {
 								if hw.Admin == msg.AdminID {
+									for j, hws := range cache.HalloweenServers {
+										if hws.Id == hw.Id {
+											cache.Mu.Lock()
+											cache.HalloweenServers = append(cache.HalloweenServers[:j], cache.HalloweenServers[j+1:]...)
+											cache.Mu.Unlock()
+										}
+									}
+									cache.Mu.Lock()
+									cache.HalloweenGame = append(cache.HalloweenGame[:i], cache.HalloweenGame[i+1:]...)
+									cache.Mu.Unlock()
 									break
 								} else {
 									//write error as string message
@@ -67,6 +77,27 @@ func StartHalloweenGameServer(hwGameId int64) {
 										log.Println(err2)
 										return
 									}
+								}
+							}
+						}
+					}
+				//Delete the person from all games
+				case msg := <-HWServerCache.Leave:
+					if msg.Type == "LEAVE" {
+						for _, hw := range cache.HalloweenGame {
+							for i, cl := range hw.Players {
+								if cl.Id == msg.UserId {
+									cache.Mu.Lock()
+									hw.Players = append(hw.Players[:i], hw.Players[i+1:]...)
+									cache.Mu.Unlock()
+
+									//Broadcasting all other users
+									BrMessage := BroadcastMassage{
+										Message: "Player " + strconv.Itoa(int(msg.UserId)) + " has left the game",
+										Type:    "LEAVE",
+									}
+
+									HWServerCache.Broadcast <- BrMessage
 								}
 							}
 						}

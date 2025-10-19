@@ -64,6 +64,26 @@ func ReadPump(conn *websocket.Conn) {
 					}
 				}
 			}
+		} else if MType.Type == "LEAVE" {
+			//Get the message
+			var LeaveMessage LeaveMessage
+			err := json.Unmarshal(message, &LeaveMessage)
+			if err != nil {
+				log.Println("Failed to read the message")
+			}
+			LeaveMessage.Type = "LEAVE"
+			//Look for the right channel to send the info
+			for _, hw := range cache.HalloweenGame {
+				for _, cl := range hw.Players {
+					if cl.Id == LeaveMessage.UserId {
+						for _, hws := range cache.HalloweenServers {
+							if hws.Id == hw.Id {
+								hws.Leave <- LeaveMessage
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }

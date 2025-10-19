@@ -57,8 +57,8 @@ type JoinMessage struct {
 }
 
 type LeaveMessage struct {
-	UserId  int64
-	Message string
+	UserId int64  `json:"id"`
+	Type   string `json:"type"`
 }
 
 type BroadcastMassage struct {
