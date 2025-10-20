@@ -13,6 +13,7 @@ func StartHalloweenGameServer(hwGameId int64) {
 		Join:      make(chan JoinMessage),
 		Leave:     make(chan LeaveMessage),
 		Broadcast: make(chan BroadcastMassage),
+		Setup:     make(chan SetUp),
 		Id:        hwGameId,
 	}
 
@@ -95,6 +96,33 @@ func StartHalloweenGameServer(hwGameId int64) {
 									BrMessage := BroadcastMassage{
 										Message: "Player " + strconv.Itoa(int(msg.UserId)) + " has left the game",
 										Type:    "LEAVE",
+									}
+
+									HWServerCache.Broadcast <- BrMessage
+								}
+							}
+						}
+					}
+				case msg := <-HWServerCache.Setup:
+					if msg.Type == "CREATE_TEAM" {
+						//Look for the right hws
+						for _, hw := range cache.HalloweenGame {
+							for _, cl := range hw.Players {
+								if cl.Id == msg.PlayerID {
+									//Create New Team with pumpkin health of 100
+									cache.Mu.Lock()
+									hw.Teams = append(hw.Teams, Team{
+										Players:       []int64{},
+										Name:          msg.TeamName,
+										Id:            hw.GetMaxId() + int64(1),
+										PumpkinHealth: 100, //Need to add a config field for this
+									})
+									cache.Mu.Unlock()
+
+									//Broadcasting everyone
+									BrMessage := BroadcastMassage{
+										Message: "New Team with Id: " + strconv.Itoa(int(hw.GetMaxId())+1) + "was created",
+										Type:    "CREATE_TEAM",
 									}
 
 									HWServerCache.Broadcast <- BrMessage

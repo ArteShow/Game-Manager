@@ -52,3 +52,14 @@ func (c *Cache) GetHalloweenGames() []HalloweenGame {
 
 	return Halloweengames
 }
+
+func (hw *HalloweenGame) GetMaxId() int64 {
+	var max int64 = 0
+	for _, id := range hw.Teams {
+		if max < id.Id {
+			max = id.Id
+		}
+	}
+
+	return max
+}

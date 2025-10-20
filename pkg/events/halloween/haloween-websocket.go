@@ -84,6 +84,26 @@ func ReadPump(conn *websocket.Conn) {
 					}
 				}
 			}
+		} else if MType.Type == "CREATE_TEAM" {
+			//Get the message
+			var createMessage SetUp
+			err := json.Unmarshal(message, &createMessage)
+			if err != nil {
+				log.Println("Failed to unmarshal the body")
+			}
+
+			//Send the message
+			for _, hw := range cache.HalloweenGame {
+				for _, cl := range hw.Players {
+					if cl.Id == createMessage.PlayerID {
+						for _, hws := range cache.HalloweenServers {
+							if hws.Id == hw.Id {
+								hws.Setup <- createMessage
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }

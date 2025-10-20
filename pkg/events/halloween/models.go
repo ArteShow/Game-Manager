@@ -72,11 +72,19 @@ type StopMessage struct {
 	Type    string
 }
 
+type SetUp struct {
+	Type     string `json:"type"`
+	TeamName string `json:"team_name"`
+	PlayerID int64  `json:"id"`
+	TeamId   int64  `json:"team_id"`
+}
+
 // Halloween Server Cache
 type HalloweenServer struct {
 	Join      chan JoinMessage
 	Leave     chan LeaveMessage
 	Broadcast chan BroadcastMassage
 	Stop      chan StopMessage
+	Setup     chan SetUp
 	Id        int64
 }
